@@ -1,0 +1,17 @@
+{
+  "countries": [
+    {
+      "code": "CO",
+      "currency": { "code": "COP", "scale": 0, "roundingMode": "HALF_UP", "symbol": "$" },
+      "giftTaxPolicy": "ABSORBED_BY_SELLER",
+      "taxClasses": [ { "code": "IVA19" } ]
+    }
+  ],
+  "tenants": [
+    {
+      "id": "CO-MARCA-A", "country": "CO", "brand": "Marca A", "orderNumberPrefix": "CO-A",
+      "quoteTtlSeconds": "900", "idempotencyTtlSeconds": 86400,
+      "distributors": [], "customers": []
+    }
+  ]
+}

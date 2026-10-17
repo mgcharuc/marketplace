@@ -1,0 +1,9 @@
+{
+  "tenantId": "CO-MARCA-B",
+  "configVersion": 1,
+  "pipeline": ["COMBO", "ESCALA", "OBSEQUIO", "IMPUESTOS", "CREDITO"],
+  "products": [
+    { "sku": "GASEOSA-350", "name": "Gaseosa Cola 350 ml", "family": "GASEOSAS", "taxClass": "IVA19", "listPrice": "2100" }
+  ],
+  "rules": []
+}

@@ -1,0 +1,10 @@
+{
+  "countries": [],
+  "tenants": [
+    {
+      "id": "PE-MARCA-A", "country": "PE", "brand": "Marca A", "orderNumberPrefix": "PE-A",
+      "quoteTtlSeconds": 900, "idempotencyTtlSeconds": 86400,
+      "distributors": [], "customers": []
+    }
+  ]
+}

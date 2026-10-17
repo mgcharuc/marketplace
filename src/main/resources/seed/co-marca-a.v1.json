@@ -1,0 +1,38 @@
+{
+  "tenantId": "CO-MARCA-A",
+  "configVersion": 1,
+  "pipeline": ["COMBO", "ESCALA", "OBSEQUIO", "IMPUESTOS", "CREDITO"],
+  "products": [
+    { "sku": "GASEOSA-350", "name": "Gaseosa Cola 350 ml", "family": "GASEOSAS", "taxClass": "IVA19", "listPrice": "2000" },
+    { "sku": "GASEOSA-1500", "name": "Gaseosa Cola 1,5 L", "family": "GASEOSAS", "taxClass": "IVA19", "listPrice": "5000" },
+    { "sku": "JUGO-1L", "name": "Jugo de naranja 1 L", "family": "JUGOS", "taxClass": "IVA5", "listPrice": "4000" },
+    { "sku": "SNACK-PAPAS", "name": "Papas fritas 150 g", "family": "SNACKS", "taxClass": "IVA19", "listPrice": "1800" }
+  ],
+  "rules": [
+    {
+      "id": "CMB-FIESTA", "name": "Combo Fiesta", "type": "COMBO", "priority": 10,
+      "components": [ { "sku": "GASEOSA-1500", "qty": 2 }, { "sku": "SNACK-PAPAS", "qty": 3 } ],
+      "comboPrice": "14000"
+    },
+    {
+      "id": "CMB-DESAYUNO", "name": "Combo Desayuno", "type": "COMBO", "priority": 20,
+      "components": [ { "sku": "JUGO-1L", "qty": 2 }, { "sku": "SNACK-PAPAS", "qty": 2 } ],
+      "comboPrice": "9000"
+    },
+    {
+      "id": "ESC-GAS350", "name": "Escala Gaseosa 350", "type": "ESCALA", "priority": 10,
+      "scope": { "kind": "SKU", "ref": "GASEOSA-350" }, "mode": "MARGINAL",
+      "tiers": [ { "fromQty": 10, "percent": "5" }, { "fromQty": 20, "percent": "10" } ]
+    },
+    {
+      "id": "ESC-GAS1500", "name": "Escala Gaseosa 1,5 L", "type": "ESCALA", "priority": 20,
+      "scope": { "kind": "SKU", "ref": "GASEOSA-1500" }, "mode": "MARGINAL",
+      "tiers": [ { "fromQty": 3, "percent": "5" } ]
+    },
+    {
+      "id": "OBS-JUGO", "name": "Jugo por cada 12 gaseosas", "type": "OBSEQUIO", "priority": 10,
+      "condition": { "kind": "QUANTITY", "scope": { "kind": "SKU", "ref": "GASEOSA-350" }, "threshold": 12 },
+      "reward": { "sku": "JUGO-1L", "qty": 1 }, "repeatable": true
+    }
+  ]
+}

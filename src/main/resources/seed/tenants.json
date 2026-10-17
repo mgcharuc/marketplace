@@ -1,0 +1,51 @@
+{
+  "countries": [
+    {
+      "code": "CO",
+      "currency": { "code": "COP", "scale": 0, "roundingMode": "HALF_UP" },
+      "giftTaxPolicy": "ABSORBED_BY_SELLER",
+      "taxClasses": [ { "code": "IVA19", "rate": "0.19" }, { "code": "IVA5", "rate": "0.05" } ]
+    },
+    {
+      "code": "EC",
+      "currency": { "code": "USD", "scale": 2, "roundingMode": "HALF_UP" },
+      "giftTaxPolicy": "NONE",
+      "taxClasses": [ { "code": "IVA15", "rate": "0.15" }, { "code": "IVA0", "rate": "0.00" } ]
+    }
+  ],
+  "tenants": [
+    {
+      "id": "CO-MARCA-A", "country": "CO", "brand": "Marca A", "orderNumberPrefix": "CO-A",
+      "quoteTtlSeconds": 900, "idempotencyTtlSeconds": 86400,
+      "distributors": [
+        { "id": "DIST-NORTE", "name": "Distribuidora Norte" },
+        { "id": "DIST-SUR", "name": "Distribuidora Sur" }
+      ],
+      "customers": [
+        { "id": "CLI-CONTADO", "name": "Tienda El Contado", "creditAccounts": [] },
+        { "id": "CLI-CREDITO-BAJO", "name": "Tienda La Esquina",
+          "creditAccounts": [
+            { "distributorId": "DIST-NORTE", "available": "50000" },
+            { "distributorId": "DIST-SUR", "available": "100000" }
+          ] },
+        { "id": "CLI-CREDITO-ALTO", "name": "Supermercado El Centro",
+          "creditAccounts": [ { "distributorId": "DIST-NORTE", "available": "1000000" } ] }
+      ]
+    },
+    {
+      "id": "CO-MARCA-B", "country": "CO", "brand": "Marca B", "orderNumberPrefix": "CO-B",
+      "quoteTtlSeconds": 900, "idempotencyTtlSeconds": 86400,
+      "distributors": [ { "id": "DIST-B-01", "name": "Distribuidora Marca B" } ],
+      "customers": [ { "id": "CLI-B-01", "name": "Tienda Marca B", "creditAccounts": [] } ]
+    },
+    {
+      "id": "EC-MARCA-A", "country": "EC", "brand": "Marca A", "orderNumberPrefix": "EC-A",
+      "quoteTtlSeconds": 900, "idempotencyTtlSeconds": 86400,
+      "distributors": [ { "id": "DIST-EC-01", "name": "Distribuidora Quito" } ],
+      "customers": [
+        { "id": "CLI-EC-01", "name": "Tienda Mitad del Mundo",
+          "creditAccounts": [ { "distributorId": "DIST-EC-01", "available": "500.00" } ] }
+      ]
+    }
+  ]
+}

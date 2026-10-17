@@ -41,6 +41,18 @@ EOF
 
 Levanta la aplicación con un PostgreSQL temporal en un contenedor.
 
+## Configuración por país y marca
+
+Ningún valor de moneda, escala, redondeo ni tasa está escrito en el código. La configuración tiene tres niveles:
+
+- **País**: moneda, escala, modo de redondeo, quién asume el impuesto del obsequio y las clases tributarias con su tasa. Lo comparten todas las marcas del país.
+- **Tenant** (país y marca): prefijo del número de orden y tiempos de vigencia de la cotización y de la clave de idempotencia. Toma la configuración fiscal y monetaria de su país.
+- **Versión comercial del tenant**: productos con su precio de lista y su clase tributaria, reglas de combo, escala y obsequio, y el orden de las etapas. Las versiones se numeran de forma consecutiva y una versión publicada no se modifica.
+
+Antes de publicar una versión se valida completa: tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
+
+Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
+
 ## Política de redondeo
 
 Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. En el dominio no hay `double` ni `float`.

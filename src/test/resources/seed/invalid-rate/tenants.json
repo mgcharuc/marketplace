@@ -1,0 +1,11 @@
+{
+  "countries": [
+    {
+      "code": "CO",
+      "currency": { "code": "COP", "scale": 0, "roundingMode": "HALF_UP" },
+      "giftTaxPolicy": "ABSORBED_BY_SELLER",
+      "taxClasses": [ { "code": "IVA19", "rate": "19" } ]
+    }
+  ],
+  "tenants": []
+}

@@ -1,0 +1,21 @@
+{
+  "tenantId": "EC-MARCA-A",
+  "configVersion": 1,
+  "pipeline": ["COMBO", "ESCALA", "OBSEQUIO", "IMPUESTOS", "CREDITO"],
+  "products": [
+    { "sku": "AGUA-500", "name": "Agua 500 ml", "family": "AGUAS", "taxClass": "IVA15", "listPrice": "0.35" },
+    { "sku": "JUGO-EC-1L", "name": "Jugo natural 1 L", "family": "JUGOS", "taxClass": "IVA0", "listPrice": "1.25" }
+  ],
+  "rules": [
+    {
+      "id": "CMB-EC-HIDRATA", "name": "Combo Hidratación", "type": "COMBO", "priority": 10,
+      "components": [ { "sku": "AGUA-500", "qty": 3 }, { "sku": "JUGO-EC-1L", "qty": 1 } ],
+      "comboPrice": "2.00"
+    },
+    {
+      "id": "ESC-AGUA500", "name": "Escala Agua", "type": "ESCALA", "priority": 10,
+      "scope": { "kind": "SKU", "ref": "AGUA-500" }, "mode": "ALL_UNITS",
+      "tiers": [ { "fromQty": 5, "percent": "3" } ]
+    }
+  ]
+}
