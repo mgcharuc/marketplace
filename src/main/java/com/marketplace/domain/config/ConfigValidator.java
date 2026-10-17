@@ -133,6 +133,9 @@ public class ConfigValidator {
                 .forEach(
                         product ->
                                 violations.add(Check.LIST_PRICE.violation(product.sku().value())));
+        rulesOf(version, ComboRule.class)
+                .filter(rule -> rule.comboPrice().scale() > scale)
+                .forEach(rule -> violations.add(Check.LIST_PRICE.violation(rule.id())));
     }
 
     private static void checkPriorities(ConfigVersion version, List<ConfigViolation> violations) {

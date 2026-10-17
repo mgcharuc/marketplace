@@ -177,6 +177,21 @@ class ConfigValidatorTest {
     }
 
     @Test
+    @DisplayName("Rechaza un precio de combo con más decimales que la moneda del país")
+    void rejectsComboPriceWithInvalidScale() {
+        var rule =
+                combo(
+                        "CMB-FIESTA",
+                        10,
+                        "14000.5",
+                        component("GASEOSA-1500", 2),
+                        component("SNACK-PAPAS", 3));
+
+        assertThat(violationsOf(coMarcaAWithRule(rule)))
+                .containsExactly(violation("PRICE_INVALID_SCALE", "CMB-FIESTA"));
+    }
+
+    @Test
     @DisplayName(
             "Rechaza dos reglas del mismo tipo y prioridad que comparten un SKU directo o por familia")
     void rejectsAmbiguousPriorities() {

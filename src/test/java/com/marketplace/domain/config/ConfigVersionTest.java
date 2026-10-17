@@ -88,6 +88,27 @@ class ConfigVersionTest {
     }
 
     @Test
+    @DisplayName("Rechaza un combo que repite un SKU en sus componentes")
+    void rejectsComboWithRepeatedSku() {
+        var components =
+                List.of(
+                        new ComboComponent(new Sku("GASEOSA-350"), 1),
+                        new ComboComponent(new Sku("GASEOSA-350"), 1));
+
+        assertThatThrownBy(
+                        () ->
+                                new ComboRule(
+                                        "CMB-DOBLE",
+                                        "Doble",
+                                        10,
+                                        null,
+                                        null,
+                                        components,
+                                        BigDecimal.TEN))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("Rechaza componentes de combo, obsequios y umbrales con cantidades menores que 1")
     void rejectsNonPositiveRuleQuantities() {
         var sku = new Sku("JUGO-1L");
