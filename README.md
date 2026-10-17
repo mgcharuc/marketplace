@@ -55,7 +55,7 @@ Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombi
 
 ## Política de redondeo
 
-Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. En el dominio no hay `double` ni `float`.
+Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio o en el código que lee y escribe JSON, si el dominio convierte un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio no dependa de ningún framework.
 
 - Cada moneda define su escala y su modo de redondeo, `HALF_UP` o `HALF_EVEN`. La escala es la de la práctica comercial, que puede no coincidir con la oficial.
 - `Money` completa con ceros un valor con menos decimales que la moneda (`2.3` pasa a `2.30` en USD) y rechaza uno con más. Nunca redondea por su cuenta.
