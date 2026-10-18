@@ -3,6 +3,7 @@ package com.marketplace.domain.config;
 import com.marketplace.domain.catalog.Sku;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,6 +18,9 @@ public class ConfigValidator {
 
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
     private static final int MAX_RATE_SCALE = 4;
+    private static final String PIPELINE = "pipeline";
+    private static final Set<Stage> COMMERCIAL = EnumSet.of(Stage.COMBO, Stage.SCALE, Stage.GIFT);
+    private static final Set<Stage> DISCOUNTS = EnumSet.of(Stage.COMBO, Stage.SCALE);
 
     public List<ConfigViolation> validate(Country country) {
         var violations = new ArrayList<ConfigViolation>();
@@ -30,6 +34,8 @@ public class ConfigValidator {
 
     public List<ConfigViolation> validate(ConfigVersion version, Country country) {
         var violations = new ArrayList<ConfigViolation>();
+        checkPipeline(version.pipeline(), violations);
+        checkNetAmountGifts(version, violations);
         checkTiers(version, violations);
         checkComboPrices(version, violations);
         checkTaxClasses(version, country, violations);
@@ -44,6 +50,45 @@ public class ConfigValidator {
         return rate.signum() >= 0
                 && rate.compareTo(BigDecimal.ONE) <= 0
                 && rate.scale() <= MAX_RATE_SCALE;
+    }
+
+    private static void checkPipeline(List<Stage> pipeline, List<ConfigViolation> violations) {
+        int tax = pipeline.indexOf(Stage.TAX);
+        if (tax >= 0 && lastIndexOfAny(pipeline, COMMERCIAL) > tax) {
+            violations.add(Check.TAX_ORDER.violation(PIPELINE));
+        }
+        int credit = pipeline.indexOf(Stage.CREDIT);
+        if (credit >= 0 && credit != pipeline.size() - 1) {
+            violations.add(Check.CREDIT_ORDER.violation(PIPELINE));
+        }
+        if (Set.copyOf(pipeline).size() != pipeline.size()) {
+            violations.add(Check.DUPLICATE_STAGE.violation(PIPELINE));
+        }
+        if (tax < 0 || credit < 0) {
+            violations.add(Check.MISSING_STAGE.violation(PIPELINE));
+        }
+    }
+
+    private static void checkNetAmountGifts(
+            ConfigVersion version, List<ConfigViolation> violations) {
+        List<Stage> pipeline = version.pipeline();
+        int gift = pipeline.indexOf(Stage.GIFT);
+        if (gift < 0 || lastIndexOfAny(pipeline, DISCOUNTS) < gift) {
+            return;
+        }
+        rulesOf(version, GiftRule.class)
+                .filter(rule -> rule.condition().kind() == ConditionKind.NET_AMOUNT)
+                .forEach(rule -> violations.add(Check.GIFT_ORDER.violation(rule.id())));
+    }
+
+    private static int lastIndexOfAny(List<Stage> pipeline, Set<Stage> stages) {
+        int last = -1;
+        for (int i = 0; i < pipeline.size(); i++) {
+            if (stages.contains(pipeline.get(i))) {
+                last = i;
+            }
+        }
+        return last;
     }
 
     private static void checkTiers(ConfigVersion version, List<ConfigViolation> violations) {
@@ -191,6 +236,11 @@ public class ConfigValidator {
     }
 
     private enum Check {
+        TAX_ORDER("PIPELINE_TAX_BEFORE_COMMERCIAL"),
+        CREDIT_ORDER("PIPELINE_CREDIT_NOT_LAST"),
+        DUPLICATE_STAGE("PIPELINE_DUPLICATE_STAGE"),
+        MISSING_STAGE("PIPELINE_MISSING_STAGE"),
+        GIFT_ORDER("PIPELINE_GIFT_NET_AMOUNT_ORDER"),
         SCALE_TIERS("SCALE_INVALID_TIERS"),
         COMBO_PRICE("COMBO_PRICE_NOT_BELOW_LIST"),
         UNKNOWN_REFERENCE("RULE_UNKNOWN_REFERENCE"),

@@ -15,6 +15,7 @@ import static com.marketplace.domain.config.ConfigFixtures.taxClass;
 import static com.marketplace.domain.config.ConfigFixtures.tier;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.marketplace.domain.catalog.Sku;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,6 +41,119 @@ class ConfigValidatorTest {
     @DisplayName("La versión de la semilla no tiene violaciones")
     void seedVersionIsValid() {
         assertThat(violationsOf(coMarcaA(1))).isEmpty();
+    }
+
+    private static List<String> pipelineViolations(Stage... stages) {
+        return new ConfigValidator()
+                        .validate(
+                                new ConfigVersion(
+                                        "CO-MARCA-A",
+                                        1,
+                                        List.of(stages),
+                                        coMarcaAProducts(),
+                                        coMarcaARules()),
+                                CO)
+                        .stream()
+                        .map(violation -> violation.code() + " " + violation.ref())
+                        .toList();
+    }
+
+    @Test
+    @DisplayName("Acepta un pipeline con las etapas comerciales reordenadas o sin alguna de ellas")
+    void acceptsReorderedCommercialStages() {
+        assertThat(
+                        pipelineViolations(
+                                Stage.SCALE, Stage.COMBO, Stage.GIFT, Stage.TAX, Stage.CREDIT))
+                .isEmpty();
+        assertThat(pipelineViolations(Stage.SCALE, Stage.TAX, Stage.CREDIT)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Rechaza un pipeline con impuestos antes de una etapa comercial")
+    void rejectsTaxBeforeCommercialStage() {
+        assertThat(pipelineViolations(Stage.COMBO, Stage.TAX, Stage.SCALE, Stage.CREDIT))
+                .containsExactly("PIPELINE_TAX_BEFORE_COMMERCIAL pipeline");
+        assertThat(
+                        pipelineViolations(
+                                Stage.COMBO, Stage.SCALE, Stage.TAX, Stage.GIFT, Stage.CREDIT))
+                .containsExactly("PIPELINE_TAX_BEFORE_COMMERCIAL pipeline");
+    }
+
+    @Test
+    @DisplayName("Rechaza un pipeline en el que el crédito no es la última etapa")
+    void rejectsCreditNotLast() {
+        assertThat(
+                        pipelineViolations(
+                                Stage.COMBO, Stage.SCALE, Stage.GIFT, Stage.CREDIT, Stage.TAX))
+                .containsExactly("PIPELINE_CREDIT_NOT_LAST pipeline");
+    }
+
+    @Test
+    @DisplayName("Rechaza un pipeline con una etapa repetida")
+    void rejectsDuplicateStage() {
+        assertThat(
+                        pipelineViolations(
+                                Stage.COMBO,
+                                Stage.GIFT,
+                                Stage.SCALE,
+                                Stage.GIFT,
+                                Stage.TAX,
+                                Stage.CREDIT))
+                .containsExactly("PIPELINE_DUPLICATE_STAGE pipeline");
+    }
+
+    @Test
+    @DisplayName("Rechaza un pipeline sin impuestos o sin crédito")
+    void rejectsMissingStage() {
+        assertThat(pipelineViolations(Stage.COMBO, Stage.SCALE, Stage.CREDIT))
+                .containsExactly("PIPELINE_MISSING_STAGE pipeline");
+        assertThat(pipelineViolations(Stage.COMBO, Stage.SCALE, Stage.TAX))
+                .containsExactly("PIPELINE_MISSING_STAGE pipeline");
+    }
+
+    @Test
+    @DisplayName(
+            "Con un obsequio por monto, rechaza un pipeline que evalúa el obsequio antes de un descuento")
+    void rejectsNetAmountGiftBeforeDiscounts() {
+        var byAmount =
+                new GiftRule(
+                        "OBS-JUGO",
+                        "Jugo por monto",
+                        10,
+                        null,
+                        null,
+                        new GiftCondition(
+                                ConditionKind.NET_AMOUNT,
+                                Scope.sku("GASEOSA-350"),
+                                new BigDecimal("20000")),
+                        new GiftReward(new Sku("JUGO-1L"), 1),
+                        true);
+        var giftFirst = List.of(Stage.COMBO, Stage.GIFT, Stage.SCALE, Stage.TAX, Stage.CREDIT);
+        var rules = new ArrayList<>(coMarcaARules());
+        rules.removeIf(rule -> rule.id().equals("OBS-JUGO"));
+        rules.add(byAmount);
+
+        assertThat(
+                        validator.validate(
+                                new ConfigVersion(
+                                        "CO-MARCA-A", 1, giftFirst, coMarcaAProducts(), rules),
+                                CO))
+                .containsExactly(violation("PIPELINE_GIFT_NET_AMOUNT_ORDER", "OBS-JUGO"));
+        assertThat(
+                        violationsOf(
+                                new ConfigVersion(
+                                        "CO-MARCA-A",
+                                        1,
+                                        giftFirst,
+                                        coMarcaAProducts(),
+                                        coMarcaARules())))
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un pipeline vacío informa las etapas que faltan")
+    void reportsEmptyPipeline() {
+        assertThat(pipelineViolations()).containsExactly("PIPELINE_MISSING_STAGE pipeline");
     }
 
     @Test
@@ -282,5 +396,26 @@ class ConfigValidatorTest {
                         "COMBO_PRICE_NOT_BELOW_LIST",
                         "RULE_UNKNOWN_REFERENCE",
                         "PRICE_INVALID_SCALE");
+    }
+
+    @Test
+    @DisplayName("Las violaciones del pipeline van antes que las de las reglas")
+    void reportsPipelineViolationsFirst() {
+        var rules = new ArrayList<>(coMarcaARules());
+        rules.add(scale("ESC-VACIA", 30, Scope.sku("GASEOSA-350")));
+        var version =
+                new ConfigVersion(
+                        "CO-MARCA-A",
+                        1,
+                        List.of(Stage.CREDIT, Stage.COMBO),
+                        coMarcaAProducts(),
+                        rules);
+
+        assertThat(violationsOf(version))
+                .extracting(ConfigViolation::code)
+                .containsExactly(
+                        "PIPELINE_CREDIT_NOT_LAST",
+                        "PIPELINE_MISSING_STAGE",
+                        "SCALE_INVALID_TIERS");
     }
 }
