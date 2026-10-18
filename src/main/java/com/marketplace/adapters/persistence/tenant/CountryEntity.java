@@ -74,7 +74,8 @@ class CountryEntity extends AssignedIdEntity<String> {
         return new Country(code, currency, GiftTaxPolicy.valueOf(giftTaxPolicy), classes);
     }
 
-    // La columna guarda cuatro decimales y la tasa se escribe como en la configuración: 0.19, 0.00.
+    // La columna guarda cuatro decimales y la tasa se devuelve como en la configuración (0.19,
+    // 0.00).
     private static BigDecimal rate(BigDecimal stored) {
         BigDecimal stripped = stored.stripTrailingZeros();
         return stripped.setScale(Math.max(MIN_RATE_SCALE, stripped.scale()));

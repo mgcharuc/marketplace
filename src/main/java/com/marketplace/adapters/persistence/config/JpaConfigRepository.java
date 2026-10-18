@@ -26,7 +26,8 @@ class JpaConfigRepository implements ConfigRepository {
                         () -> new IllegalStateException("Tenant sin versión vigente: " + tenantId));
     }
 
-    // El índice único de la versión vigente no es diferible: primero se retira la anterior.
+    // Se retira la versión vigente antes de insertar la nueva porque el índice único no es
+    // diferible.
     @Override
     @Transactional
     public void publish(ConfigVersion version, Instant publishedAt) {

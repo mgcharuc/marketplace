@@ -9,8 +9,8 @@ public interface ConfigRepository {
     ConfigVersion current(String tenantId);
 
     /**
-     * Guarda la versión y la deja como vigente en lugar de la anterior. No valida reglas de
-     * negocio: la versión ya pasó por {@code TenantConfigHistory}.
+     * Guarda la versión y la deja como vigente en lugar de la anterior. No valida reglas de negocio
+     * porque la versión ya pasó por {@code TenantConfigHistory}.
      */
     void publish(ConfigVersion version, Instant publishedAt);
 }

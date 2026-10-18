@@ -19,7 +19,7 @@ class QuoteTest {
     private static final Instant EXPIRES = Instant.parse("2026-10-16T15:15:00Z");
 
     @Test
-    @DisplayName("La clave de la cotización la ata a su tenant y a su tendero")
+    @DisplayName("La clave de la cotización incluye su tenant y su tendero")
     void keyCarriesTenantAndCustomer() {
         assertThat(header(CREATED, EXPIRES).key())
                 .isEqualTo(new QuoteKey("CO-MARCA-A", "CLI-CONTADO", "q_1"));

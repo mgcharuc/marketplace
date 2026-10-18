@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(ContainerRuntimeCondition.class)
 @SpringBootTest
+@ExtendWith(DatabaseCleaningExtension.class)
 @ActiveProfiles("test")
-@Import(PostgresContainerConfiguration.class)
+@Import({PostgresContainerConfiguration.class, TestDoublesConfiguration.class})
 public @interface IntegrationTest {}

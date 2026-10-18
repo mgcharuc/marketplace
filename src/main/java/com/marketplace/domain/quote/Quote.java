@@ -4,8 +4,8 @@ import com.marketplace.domain.money.Money;
 import java.util.Objects;
 
 /**
- * Cotización guardada con el desglose tal como se respondió. El snapshot no se vuelve a calcular:
- * la consulta y la confirmación devuelven ese mismo texto.
+ * Cotización guardada con su desglose. La consulta y la confirmación devuelven el snapshot
+ * guardado, sin volver a calcularlo.
  */
 public record Quote(QuoteHeader header, Money total, String snapshot) {
 

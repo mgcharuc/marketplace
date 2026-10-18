@@ -13,6 +13,7 @@ import com.marketplace.domain.config.ScaleMode;
 import com.marketplace.domain.config.ScaleRule;
 import com.marketplace.domain.config.Scope;
 import com.marketplace.domain.config.Stage;
+import com.marketplace.support.Resources;
 import java.math.BigDecimal;
 import java.time.Instant;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;

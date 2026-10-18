@@ -19,9 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Carga los tenants de las semillas que todavía no existen, con sus distribuidores, tenderos, cupos
- * y versión comercial inicial. Un tenant que ya existe no se toca, así que reiniciar la aplicación
- * contra una base con datos no los duplica ni los pisa.
+ * Carga los tenants de las semillas que todavía no existen y no toca los que ya están en la base.
  */
 public class LoadSeeds {
 

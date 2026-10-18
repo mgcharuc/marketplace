@@ -1,14 +1,14 @@
-package com.marketplace.adapters.json;
+package com.marketplace.support;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
-final class Resources {
+public final class Resources {
 
     private Resources() {}
 
-    static String read(String path) {
+    public static String read(String path) {
         try (var stream = Resources.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) {
                 throw new IllegalArgumentException("No existe el recurso " + path);

@@ -2,7 +2,7 @@ package com.marketplace.application.port;
 
 import java.util.function.Supplier;
 
-/** Ejecuta un trabajo en una transacción: se guarda todo o, si algo falla, nada. */
+/** Ejecuta el trabajo en una transacción y la revierte completa si algo falla. */
 public interface UnitOfWork {
 
     <T> T execute(Supplier<T> work);

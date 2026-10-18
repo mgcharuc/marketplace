@@ -16,6 +16,7 @@ import com.marketplace.domain.config.ScaleRule;
 import com.marketplace.domain.config.Tenant;
 import com.marketplace.domain.config.TenantConfigHistory;
 import com.marketplace.domain.money.CurrencyConfig;
+import com.marketplace.support.Resources;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
