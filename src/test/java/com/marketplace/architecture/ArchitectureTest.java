@@ -28,7 +28,11 @@ class ArchitectureTest {
     private static final String DOMAIN = "com.marketplace.domain..";
     private static final String PRICING = "com.marketplace.pricing..";
     private static final String[] MONEY_PACKAGES = {
-        DOMAIN, PRICING, "com.marketplace.adapters.web..", "com.marketplace.adapters.json.."
+        DOMAIN,
+        PRICING,
+        "com.marketplace.adapters.web..",
+        "com.marketplace.adapters.json..",
+        "com.marketplace.adapters.persistence.."
     };
     private static final String EXACT_DECIMALS =
             "los montos, tasas y porcentajes son decimales exactos";
