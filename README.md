@@ -39,7 +39,40 @@ EOF
 ./mvnw spring-boot:test-run
 ```
 
-Levanta la aplicación con un PostgreSQL temporal en un contenedor.
+Levanta la aplicación con un PostgreSQL temporal en un contenedor, en el puerto 8080.
+
+## API
+
+Cada petición identifica al tendero con las cabeceras `X-Tenant-Id` y `X-Customer-Id`. `X-Correlation-Id` es opcional. Si no llega o no es válido se genera uno, y siempre vuelve en la respuesta.
+
+Las semillas traen tenderos para probar los dos métodos de pago. En `CO-MARCA-A`, `CLI-CONTADO` no tiene cupo, `CLI-CREDITO-ALTO` tiene cupo con `DIST-NORTE` y `CLI-CREDITO-BAJO` con `DIST-NORTE` y `DIST-SUR`. En `EC-MARCA-A`, `CLI-EC-01` tiene cupo con `DIST-EC-01`.
+
+Cotizar un carrito:
+
+```bash
+curl -i http://localhost:8080/v1/quotes \
+  -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO' -H 'Content-Type: application/json' \
+  -d '{"distributorId": "DIST-NORTE", "paymentMethod": "CASH",
+       "items": [{"sku": "GASEOSA-1500", "quantity": 3}, {"sku": "SNACK-PAPAS", "quantity": 3}]}'
+```
+
+Responde 201 con el desglose completo y `Location: /v1/quotes/{quoteId}`. La cotización vence según la vigencia del tenant, 15 minutos en las semillas. Consultarla devuelve el mismo cuerpo, byte a byte, porque se guarda el JSON tal como se respondió y no se vuelve a calcular. Solo la ve el tendero que la pidió.
+
+```bash
+curl -i http://localhost:8080/v1/quotes/{quoteId} \
+  -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO'
+```
+
+Los SKU repetidos se suman en una sola línea. A crédito, `credit` informa el cupo disponible del tendero con ese distribuidor, el total requerido y cuánto falta, sin reservar nada.
+
+Los errores usan `application/problem+json` con un `code` estable y el `correlationId`:
+
+- 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte) o falta un campo obligatorio.
+- 404 si el tenant, el tendero, la cotización o la ruta no existen.
+- 405 si la ruta no admite el método y 415 si el cuerpo no es `application/json`.
+- 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor.
+
+Los errores de forma y los del carrito traen `errors[]` con la posición del ítem, el campo, el SKU recibido y el código. El carrito informa todos sus errores juntos.
 
 ## Configuración por país y marca
 

@@ -10,3 +10,6 @@ spring:
       ddl-auto: validate
   flyway:
     locations: classpath:db/migration
+logging:
+  pattern:
+    correlation: "[%X{correlationId:-} %X{tenantId:-} %X{customerId:-} %X{distributorId:-}] "
