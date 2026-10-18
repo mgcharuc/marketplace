@@ -19,7 +19,7 @@ final class GiftStage implements PricingStage {
     public void apply(PricingContext context) {
         TaxBearer bearer = bearer(context.giftTaxPolicy());
         for (GiftRule rule : context.rules(GiftRule.class)) {
-            int quantity = quantity(rule, measure(context, rule.condition()));
+            long quantity = quantity(rule, measure(context, rule.condition()));
             if (quantity > 0) {
                 var product = context.product(rule.reward().sku());
                 context.add(
@@ -45,14 +45,14 @@ final class GiftStage implements PricingStage {
         };
     }
 
-    private static int quantity(GiftRule rule, BigDecimal measured) {
+    private static long quantity(GiftRule rule, BigDecimal measured) {
         BigDecimal threshold = rule.condition().threshold();
         if (measured.compareTo(threshold) < 0) {
             return 0;
         }
-        int times =
+        long times =
                 rule.repeatable()
-                        ? measured.divide(threshold, 0, RoundingMode.DOWN).intValueExact()
+                        ? measured.divide(threshold, 0, RoundingMode.DOWN).longValueExact()
                         : 1;
         return Math.multiplyExact(times, rule.reward().qty());
     }

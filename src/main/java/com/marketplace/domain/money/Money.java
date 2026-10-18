@@ -52,7 +52,7 @@ public record Money(BigDecimal amount, CurrencyConfig currency) {
     }
 
     /** Monto de varias unidades a este precio. Es exacto y conserva la escala de la moneda. */
-    public Money forUnits(int units) {
+    public Money forUnits(long units) {
         if (units < 0) {
             throw new IllegalArgumentException("Cantidad de unidades negativa: " + units);
         }

@@ -9,7 +9,7 @@ final class GiftState {
 
     private final String ruleId;
     private final Product product;
-    private final int quantity;
+    private final long quantity;
     private final Money unitPrice;
     private final BigDecimal taxRate;
     private final TaxBearer bearer;
@@ -18,7 +18,7 @@ final class GiftState {
     GiftState(
             String ruleId,
             Product product,
-            int quantity,
+            long quantity,
             CurrencyConfig currency,
             BigDecimal taxRate,
             TaxBearer bearer) {

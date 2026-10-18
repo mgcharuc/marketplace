@@ -13,7 +13,7 @@ public record Gift(
         String ruleId,
         Sku sku,
         String name,
-        int quantity,
+        long quantity,
         Money referenceUnitPrice,
         Money taxBase,
         BigDecimal taxRate,

@@ -106,7 +106,7 @@ class GoldenTest {
 
         BreakdownInvariants.check(breakdown);
 
-        ObjectNode actual = new BreakdownJson(mapper).write(breakdown);
+        JsonNode actual = mapper.readTree(new BreakdownJson(mapper).write(breakdown).toString());
         JsonNode expected = read(directory.resolve("expected.json"));
         for (String field : COMPARED) {
             assertThat(actual.get(field)).as(field).isEqualTo(expected.get(field));

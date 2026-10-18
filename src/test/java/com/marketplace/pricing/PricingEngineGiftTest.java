@@ -99,7 +99,7 @@ class PricingEngineGiftTest {
                 String.valueOf(gift.taxBorneBy()));
     }
 
-    private static List<Integer> quantities(Breakdown breakdown) {
+    private static List<Long> quantities(Breakdown breakdown) {
         return breakdown.gifts().stream().map(Gift::quantity).toList();
     }
 
@@ -113,7 +113,7 @@ class PricingEngineGiftTest {
         var breakdown = priceCo(cart("GASEOSA-350", 12));
 
         assertThat(breakdown.discounts()).hasSize(1);
-        assertThat(quantities(breakdown)).containsExactly(1);
+        assertThat(quantities(breakdown)).containsExactly(1L);
         assertThat(breakdown.gifts().get(0).name()).isEqualTo("JUGO-1L");
         assertThat(breakdown.lines()).hasSize(1);
     }
@@ -143,13 +143,13 @@ class PricingEngineGiftTest {
     @DisplayName(
             "Un obsequio repetible entrega la recompensa por cada vez que se alcanza el umbral")
     void repeatsRewardForEachThreshold() {
-        assertThat(quantities(priceCo(cart("GASEOSA-350", 24)))).containsExactly(2);
-        assertThat(quantities(priceCo(cart("GASEOSA-350", 35)))).containsExactly(2);
-        assertThat(quantities(priceCo(cart("GASEOSA-350", 36)))).containsExactly(3);
+        assertThat(quantities(priceCo(cart("GASEOSA-350", 24)))).containsExactly(2L);
+        assertThat(quantities(priceCo(cart("GASEOSA-350", 35)))).containsExactly(2L);
+        assertThat(quantities(priceCo(cart("GASEOSA-350", 36)))).containsExactly(3L);
 
         var twoPerThreshold = coMarcaAWithRule(juiceEvery("12", 2, true));
         assertThat(quantities(price(twoPerThreshold, CO_MARCA_A, cart("GASEOSA-350", 25))))
-                .containsExactly(4);
+                .containsExactly(4L);
     }
 
     @Test
@@ -157,7 +157,8 @@ class PricingEngineGiftTest {
     void givesNonRepeatableRewardOnce() {
         var once = coMarcaAWithRule(juiceEvery("12", 2, false));
 
-        assertThat(quantities(price(once, CO_MARCA_A, cart("GASEOSA-350", 36)))).containsExactly(2);
+        assertThat(quantities(price(once, CO_MARCA_A, cart("GASEOSA-350", 36))))
+                .containsExactly(2L);
     }
 
     @Test
@@ -279,7 +280,7 @@ class PricingEngineGiftTest {
 
         var breakdown = price(version, CO_MARCA_A, cart("GASEOSA-350", 6, "GASEOSA-1500", 6));
 
-        assertThat(quantities(breakdown)).containsExactly(1);
+        assertThat(quantities(breakdown)).containsExactly(1L);
     }
 
     @Test
@@ -299,8 +300,29 @@ class PricingEngineGiftTest {
                                 true));
 
         assertThat(quantities(price(version, CO_MARCA_A, cart("GASEOSA-350", 12))))
-                .containsExactly(1);
+                .containsExactly(1L);
         assertThat(quantities(price(version, CO_MARCA_A, cart("GASEOSA-350", 5)))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La cantidad obsequiada no tiene tope, aunque supere el rango de un entero")
+    void allowsLargeGiftQuantities() {
+        var version =
+                coMarcaAWithRule(
+                        gift(
+                                "OBS-JUGO",
+                                10,
+                                ConditionKind.QUANTITY,
+                                Scope.family("GASEOSAS"),
+                                "1",
+                                "JUGO-1L",
+                                300000,
+                                true));
+
+        var breakdown = price(version, CO_MARCA_A, cart("GASEOSA-350", 9999, "GASEOSA-1500", 9999));
+
+        assertThat(breakdown.gifts().get(0).quantity()).isEqualTo(5_999_400_000L);
+        assertThat(plain(breakdown.gifts().get(0).taxBase())).isEqualTo("23997600000000");
     }
 
     @Test
