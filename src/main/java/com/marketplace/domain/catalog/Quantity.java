@@ -7,9 +7,13 @@ public record Quantity(int value) {
     public static final int MAX = 9999;
 
     public Quantity {
-        if (value < MIN || value > MAX) {
+        if (!isValid(value)) {
             throw new IllegalArgumentException(
                     "La cantidad debe estar entre " + MIN + " y " + MAX + ": " + value);
         }
+    }
+
+    public static boolean isValid(long value) {
+        return value >= MIN && value <= MAX;
     }
 }
