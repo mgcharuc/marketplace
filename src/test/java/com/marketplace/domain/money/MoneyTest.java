@@ -46,6 +46,15 @@ class MoneyTest {
     }
 
     @Test
+    @DisplayName("El monto de varias unidades conserva la escala de la moneda sin redondear")
+    void multipliesByUnits() {
+        assertThat(usd("0.35").forUnits(7)).isEqualTo(usd("2.45"));
+        assertThat(usd("0.35").forUnits(0)).isEqualTo(usd("0"));
+        assertThatThrownBy(() -> usd("0.35").forUnits(-1))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("Dos montos iguales con distinta cantidad de decimales son el mismo valor")
     void equalityIgnoresInputScale() {
         assertThat(usd("2.3")).isEqualTo(usd("2.30"));

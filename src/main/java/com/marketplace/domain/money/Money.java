@@ -51,6 +51,14 @@ public record Money(BigDecimal amount, CurrencyConfig currency) {
         return amount.multiply(factor);
     }
 
+    /** Monto de varias unidades a este precio. Es exacto y conserva la escala de la moneda. */
+    public Money forUnits(int units) {
+        if (units < 0) {
+            throw new IllegalArgumentException("Cantidad de unidades negativa: " + units);
+        }
+        return new Money(amount.multiply(BigDecimal.valueOf(units)), currency);
+    }
+
     private void requireSameCurrency(Money other) {
         if (!currency.equals(other.currency)) {
             throw new IllegalArgumentException(
