@@ -53,11 +53,26 @@ Antes de publicar una versión se valida completa: tramos de escala crecientes, 
 
 Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
 
+## Orden de aplicación de palancas
+
+El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión comercial del tenant. Las semillas usan `COMBO → ESCALA → OBSEQUIO → IMPUESTOS → CREDITO`.
+
+- **El combo va antes que la escala.** Es la regla más específica: un precio cerrado para un conjunto concreto de productos. Si la escala fuera primero, las unidades que después forman el combo ayudarían a alcanzar un tramo de escala y la misma unidad daría dos beneficios. Por ejemplo, con 5 GASEOSA-1500 y 3 SNACK-PAPAS, el combo consume 2 gaseosas y la escala cuenta solo las 3 que quedan: descuento total 1650. Con la escala primero serían 2150.
+- **Una unidad recibe como máximo un descuento.** La escala cuenta posiciones solo sobre las unidades que el combo no consumió.
+- **Dentro de una etapa**, las reglas se aplican por prioridad y luego por id, y cada una toma todo lo que puede de las unidades que quedan. No se busca la combinación más favorable para el cliente.
+- **Los impuestos van después de los descuentos**, porque la base gravable es lo que queda después de los descuentos comerciales. El descuento del combo se reparte entre sus líneas solo para calcular la base gravable de cada producto, que puede tener otra tasa. No aparece como un descuento por producto.
+- Una etapa que no está en el pipeline de una versión no se aplica.
+
 ## Política de redondeo
 
-Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio o en el código que lee y escribe JSON, si el dominio convierte un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio no dependa de ningún framework.
+Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio, en el motor de precios o en el código que lee y escribe JSON, si el dominio o el motor convierten un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio y el motor no dependan de ningún framework.
 
 - Cada moneda define su escala y su modo de redondeo, `HALF_UP` o `HALF_EVEN`. La escala es la de la práctica comercial, que puede no coincidir con la oficial.
 - `Money` completa con ceros un valor con menos decimales que la moneda (`2.3` pasa a `2.30` en USD) y rechaza uno con más. Nunca redondea por su cuenta.
 - Los cálculos intermedios, como multiplicar por una tasa, devuelven `BigDecimal` con precisión completa. `Money.round` es el único paso de un valor intermedio a un monto.
+- Solo se redondea en tres puntos: el descuento de cada escala sobre cada línea, el descuento total de cada combo antes de repartirlo y el impuesto de cada línea. Los totales del pedido son sumas de valores ya redondeados y nunca se redondean, así el total coincide con la suma de las líneas, igual que en la factura y en el ERP.
 - Para repartir un monto en partes proporcionales se usa el método del mayor residuo (`Allocation.split`). Cada cuota se trunca a la escala de la moneda y las unidades mínimas que sobran van, de a una, a las partes con mayor fracción descartada. Si dos partes empatan, gana el SKU menor o el tramo que empieza antes. La suma de las cuotas siempre es el monto repartido.
+
+## Casos golden
+
+Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos y tramos. La derivación de cada monto está en `src/test/resources/golden/README.md`.

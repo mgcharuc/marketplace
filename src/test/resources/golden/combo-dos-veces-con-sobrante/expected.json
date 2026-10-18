@@ -1,0 +1,92 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-1500",
+      "name": "Gaseosa Cola 1,5 L",
+      "quantity": 5,
+      "unitPrice": "5000",
+      "grossAmount": "25000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "1818"
+        }
+      ],
+      "taxableBase": "23182",
+      "taxRate": "0.19",
+      "taxAmount": "4405",
+      "netAmount": "27587"
+    },
+    {
+      "lineId": "L2",
+      "sku": "SNACK-PAPAS",
+      "name": "Papas fritas 150 g",
+      "quantity": 6,
+      "unitPrice": "1800",
+      "grossAmount": "10800",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "982"
+        }
+      ],
+      "taxableBase": "9818",
+      "taxRate": "0.19",
+      "taxAmount": "1865",
+      "netAmount": "11683"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "CMB-FIESTA",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-FIESTA",
+      "name": "Combo Fiesta",
+      "applications": 2,
+      "components": [
+        {
+          "sku": "GASEOSA-1500",
+          "qty": 2
+        },
+        {
+          "sku": "SNACK-PAPAS",
+          "qty": 3
+        }
+      ],
+      "listValue": "15400",
+      "comboPrice": "14000",
+      "amount": "2800",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "1818"
+        },
+        {
+          "lineId": "L2",
+          "amount": "982"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "35800",
+    "discountTotal": "2800",
+    "netSubtotal": "33000",
+    "taxableBase": "33000",
+    "taxTotal": "6270",
+    "total": "39270"
+  },
+  "credit": null
+}

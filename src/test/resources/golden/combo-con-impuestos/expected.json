@@ -1,0 +1,92 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "JUGO-1L",
+      "name": "Jugo de naranja 1 L",
+      "quantity": 2,
+      "unitPrice": "4000",
+      "grossAmount": "8000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-DESAYUNO",
+          "amount": "1793"
+        }
+      ],
+      "taxableBase": "6207",
+      "taxRate": "0.05",
+      "taxAmount": "310",
+      "netAmount": "6517"
+    },
+    {
+      "lineId": "L2",
+      "sku": "SNACK-PAPAS",
+      "name": "Papas fritas 150 g",
+      "quantity": 2,
+      "unitPrice": "1800",
+      "grossAmount": "3600",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-DESAYUNO",
+          "amount": "807"
+        }
+      ],
+      "taxableBase": "2793",
+      "taxRate": "0.19",
+      "taxAmount": "531",
+      "netAmount": "3324"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "CMB-DESAYUNO",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-DESAYUNO",
+      "name": "Combo Desayuno",
+      "applications": 1,
+      "components": [
+        {
+          "sku": "JUGO-1L",
+          "qty": 2
+        },
+        {
+          "sku": "SNACK-PAPAS",
+          "qty": 2
+        }
+      ],
+      "listValue": "11600",
+      "comboPrice": "9000",
+      "amount": "2600",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "1793"
+        },
+        {
+          "lineId": "L2",
+          "amount": "807"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "11600",
+    "discountTotal": "2600",
+    "netSubtotal": "9000",
+    "taxableBase": "9000",
+    "taxTotal": "841",
+    "total": "9841"
+  },
+  "credit": null
+}

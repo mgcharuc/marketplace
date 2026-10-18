@@ -1,0 +1,22 @@
+{
+  "description": "La escala cuenta posiciones solo sobre las unidades que el combo no consumió",
+  "seed": "co-marca-a.v1",
+  "overrides": null,
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-1500",
+        "quantity": 5
+      },
+      {
+        "sku": "SNACK-PAPAS",
+        "quantity": 3
+      }
+    ]
+  }
+}

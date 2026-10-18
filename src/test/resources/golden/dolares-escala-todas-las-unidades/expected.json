@@ -1,0 +1,67 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "USD",
+    "scale": 2,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "AGUA-500",
+      "name": "Agua 500 ml",
+      "quantity": 7,
+      "unitPrice": "0.35",
+      "grossAmount": "2.45",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-AGUA500",
+          "amount": "0.07"
+        }
+      ],
+      "taxBaseAllocations": [],
+      "taxableBase": "2.38",
+      "taxRate": "0.15",
+      "taxAmount": "0.36",
+      "netAmount": "2.74"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "ESC-AGUA500",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-AGUA500",
+      "name": "Escala Agua",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "0.07",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "0.07"
+        }
+      ],
+      "mode": "ALL_UNITS",
+      "tiers": [
+        {
+          "fromQty": 5,
+          "percent": "3",
+          "units": 7,
+          "amount": "0.07"
+        }
+      ]
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "2.45",
+    "discountTotal": "0.07",
+    "netSubtotal": "2.38",
+    "taxableBase": "2.38",
+    "taxTotal": "0.36",
+    "total": "2.74"
+  },
+  "credit": null
+}

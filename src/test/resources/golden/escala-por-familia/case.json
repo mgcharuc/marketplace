@@ -1,0 +1,44 @@
+{
+  "description": "La escala por familia pone los tramos altos sobre las unidades más baratas",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "rules": {
+      "ESC-GAS350": null,
+      "ESC-GAS1500": null,
+      "ESC-FAM-GAS": {
+        "id": "ESC-FAM-GAS",
+        "name": "Escala familia gaseosas",
+        "type": "ESCALA",
+        "priority": 10,
+        "scope": {
+          "kind": "FAMILY",
+          "ref": "GASEOSAS"
+        },
+        "mode": "MARGINAL",
+        "tiers": [
+          {
+            "fromQty": 10,
+            "percent": "5"
+          }
+        ]
+      }
+    }
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 6
+      },
+      {
+        "sku": "GASEOSA-1500",
+        "quantity": 6
+      }
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "USD",
+    "scale": 2,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "AGUA-500",
+      "name": "Agua 500 ml",
+      "quantity": 3,
+      "unitPrice": "0.35",
+      "grossAmount": "1.05",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-EC-HIDRATA",
+          "amount": "0.14"
+        }
+      ],
+      "taxableBase": "0.91",
+      "taxRate": "0.15",
+      "taxAmount": "0.14",
+      "netAmount": "1.05"
+    },
+    {
+      "lineId": "L2",
+      "sku": "JUGO-EC-1L",
+      "name": "Jugo natural 1 L",
+      "quantity": 1,
+      "unitPrice": "1.25",
+      "grossAmount": "1.25",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-EC-HIDRATA",
+          "amount": "0.16"
+        }
+      ],
+      "taxableBase": "1.09",
+      "taxRate": "0.00",
+      "taxAmount": "0.00",
+      "netAmount": "1.09"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "CMB-EC-HIDRATA",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-EC-HIDRATA",
+      "name": "Combo Hidratación",
+      "applications": 1,
+      "components": [
+        {
+          "sku": "AGUA-500",
+          "qty": 3
+        },
+        {
+          "sku": "JUGO-EC-1L",
+          "qty": 1
+        }
+      ],
+      "listValue": "2.30",
+      "comboPrice": "2.00",
+      "amount": "0.30",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "0.14"
+        },
+        {
+          "lineId": "L2",
+          "amount": "0.16"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "2.30",
+    "discountTotal": "0.30",
+    "netSubtotal": "2.00",
+    "taxableBase": "2.00",
+    "taxTotal": "0.14",
+    "total": "2.14"
+  },
+  "credit": null
+}

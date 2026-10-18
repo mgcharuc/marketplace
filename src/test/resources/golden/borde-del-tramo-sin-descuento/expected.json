@@ -1,0 +1,35 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 9,
+      "unitPrice": "2000",
+      "grossAmount": "18000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [],
+      "taxableBase": "18000",
+      "taxRate": "0.19",
+      "taxAmount": "3420",
+      "netAmount": "21420"
+    }
+  ],
+  "discounts": [],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "18000",
+    "discountTotal": "0",
+    "netSubtotal": "18000",
+    "taxableBase": "18000",
+    "taxTotal": "3420",
+    "total": "21420"
+  },
+  "credit": null
+}

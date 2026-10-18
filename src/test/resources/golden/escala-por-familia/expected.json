@@ -1,0 +1,81 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 6,
+      "unitPrice": "2000",
+      "grossAmount": "12000",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-FAM-GAS",
+          "amount": "300"
+        }
+      ],
+      "taxBaseAllocations": [],
+      "taxableBase": "11700",
+      "taxRate": "0.19",
+      "taxAmount": "2223",
+      "netAmount": "13923"
+    },
+    {
+      "lineId": "L2",
+      "sku": "GASEOSA-1500",
+      "name": "Gaseosa Cola 1,5 L",
+      "quantity": 6,
+      "unitPrice": "5000",
+      "grossAmount": "30000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [],
+      "taxableBase": "30000",
+      "taxRate": "0.19",
+      "taxAmount": "5700",
+      "netAmount": "35700"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "ESC-FAM-GAS",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-FAM-GAS",
+      "name": "Escala familia gaseosas",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "300",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "300"
+        }
+      ],
+      "mode": "MARGINAL",
+      "tiers": [
+        {
+          "fromQty": 10,
+          "percent": "5",
+          "units": 3,
+          "amount": "300"
+        }
+      ]
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "42000",
+    "discountTotal": "300",
+    "netSubtotal": "41700",
+    "taxableBase": "41700",
+    "taxTotal": "7923",
+    "total": "49623"
+  },
+  "credit": null
+}

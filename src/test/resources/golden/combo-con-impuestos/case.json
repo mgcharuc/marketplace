@@ -1,0 +1,22 @@
+{
+  "description": "Combo con impuestos: cada línea paga su tasa sobre la base que le deja el reparto",
+  "seed": "co-marca-a.v1",
+  "overrides": null,
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "JUGO-1L",
+        "quantity": 2
+      },
+      {
+        "sku": "SNACK-PAPAS",
+        "quantity": 2
+      }
+    ]
+  }
+}

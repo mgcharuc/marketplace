@@ -1,0 +1,22 @@
+{
+  "description": "En dólares, el centavo que sobra del reparto del combo va a la línea con mayor fracción",
+  "seed": "ec-marca-a.v1",
+  "overrides": null,
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-EC-01",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-EC-01",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "AGUA-500",
+        "quantity": 3
+      },
+      {
+        "sku": "JUGO-EC-1L",
+        "quantity": 1
+      }
+    ]
+  }
+}

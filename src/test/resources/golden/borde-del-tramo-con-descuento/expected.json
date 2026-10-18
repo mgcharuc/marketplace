@@ -1,0 +1,67 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 10,
+      "unitPrice": "2000",
+      "grossAmount": "20000",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-GAS350",
+          "amount": "100"
+        }
+      ],
+      "taxBaseAllocations": [],
+      "taxableBase": "19900",
+      "taxRate": "0.19",
+      "taxAmount": "3781",
+      "netAmount": "23681"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "ESC-GAS350",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-GAS350",
+      "name": "Escala Gaseosa 350",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "100",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "100"
+        }
+      ],
+      "mode": "MARGINAL",
+      "tiers": [
+        {
+          "fromQty": 10,
+          "percent": "5",
+          "units": 1,
+          "amount": "100"
+        }
+      ]
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "20000",
+    "discountTotal": "100",
+    "netSubtotal": "19900",
+    "taxableBase": "19900",
+    "taxTotal": "3781",
+    "total": "23681"
+  },
+  "credit": null
+}

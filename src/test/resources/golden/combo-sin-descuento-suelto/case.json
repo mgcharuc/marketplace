@@ -1,0 +1,22 @@
+{
+  "description": "Combo sin descuento suelto: los productos del combo no muestran descuento propio",
+  "seed": "co-marca-a.v1",
+  "overrides": null,
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-1500",
+        "quantity": 3
+      },
+      {
+        "sku": "SNACK-PAPAS",
+        "quantity": 3
+      }
+    ]
+  }
+}
