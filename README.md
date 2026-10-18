@@ -53,6 +53,8 @@ Antes de publicar una versión se valida completa: un pipeline con los impuestos
 
 Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
 
+Al arrancar, la aplicación crea el esquema con Flyway y guarda en PostgreSQL los tenants de las semillas que todavía no existen, con sus distribuidores, tenderos, cupos de crédito y versión inicial. Un tenant que ya está en la base no se vuelve a cargar, así que reiniciar no duplica datos ni deshace cambios. La configuración del país se lee de la base en cada uso, sin caché: un cambio de tasa aplica desde la siguiente lectura a todos los tenants del país.
+
 ## Orden de aplicación de palancas
 
 El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión comercial del tenant. Las semillas usan `COMBO → ESCALA → OBSEQUIO → IMPUESTOS → CREDITO`.
