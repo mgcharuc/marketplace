@@ -15,5 +15,10 @@ final class TaxStage implements PricingStage {
         for (LineState line : context.lines()) {
             line.tax(Money.round(line.taxableBase().times(line.taxRate()), context.currency()));
         }
+        for (GiftState gift : context.gifts()) {
+            if (gift.taxed()) {
+                gift.tax(Money.round(gift.taxBase().times(gift.taxRate()), context.currency()));
+            }
+        }
     }
 }

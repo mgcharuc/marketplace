@@ -1,0 +1,22 @@
+{
+  "description": "El cliente paga el impuesto del obsequio y su base entra en los totales",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "country": {
+      "giftTaxPolicy": "CHARGED_TO_CUSTOMER"
+    }
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 12
+      }
+    ]
+  }
+}

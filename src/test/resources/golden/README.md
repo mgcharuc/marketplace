@@ -15,7 +15,9 @@ Datos de la semilla que usan los casos:
 | AGUA-500 | 0.35 USD | 15 % |
 | JUGO-EC-1L | 1.25 USD | 0 % |
 
-Reglas: Combo Fiesta (2 GASEOSA-1500 + 3 SNACK-PAPAS por 14000), Combo Desayuno (2 JUGO-1L + 2 SNACK-PAPAS por 9000), Escala Gaseosa 350 (marginal, 5 % desde la unidad 10 y 10 % desde la 20), Escala Gaseosa 1,5 L (marginal, 5 % desde la unidad 3), Combo Hidratación (3 AGUA-500 + 1 JUGO-EC-1L por 2.00 USD) y Escala Agua (todas las unidades, 3 % desde 5).
+Colombia asume el impuesto del obsequio en el vendedor: se calcula e informa, pero no entra en el total. Ecuador no grava los obsequios.
+
+Reglas: Combo Fiesta (2 GASEOSA-1500 + 3 SNACK-PAPAS por 14000), Combo Desayuno (2 JUGO-1L + 2 SNACK-PAPAS por 9000), Escala Gaseosa 350 (marginal, 5 % desde la unidad 10 y 10 % desde la 20), Escala Gaseosa 1,5 L (marginal, 5 % desde la unidad 3), Jugo por cada 12 gaseosas (un JUGO-1L por cada 12 GASEOSA-350 pagadas, repetible), Combo Hidratación (3 AGUA-500 + 1 JUGO-EC-1L por 2.00 USD) y Escala Agua (todas las unidades, 3 % desde 5).
 
 ## `combo-sin-descuento-suelto` (golden obligatorio 2)
 
@@ -90,3 +92,50 @@ Carrito: GASEOSA-1500 × 5 y SNACK-PAPAS × 3.
 - Quedan 3 GASEOSA-1500 elegibles en las posiciones 1 a 3. Solo la posición 3 cae en el tramo: 5000 × 5 % = 250. Si se contaran las 5 unidades, el descuento sería 750.
 - GASEOSA-1500: 25000 − 250 − 909 = 23841, IVA 4529,79 → 4530. SNACK-PAPAS: 4909, IVA 933.
 - Total 28750 + 5463 = 34213.
+
+## `escala-dos-tramos` (golden obligatorio 1)
+
+Carrito: GASEOSA-350 × 25.
+
+- Escala marginal: las unidades 10 a 19 van al 5 %, 10 × 2000 × 5 % = 1000, y las 20 a 25 al 10 %, 6 × 2000 × 10 % = 1200. Descuento 2200.
+- Base 50000 − 2200 = 47800, IVA 9082. Total 56882.
+- Obsequio: 12 cabe 2 veces completas en 25, así que son 2 jugos. Base 2 × 4000 = 8000, IVA 5 % = 400 a cargo del vendedor, fuera del total.
+
+## `obsequio-con-su-cantidad` (golden obligatorio 3)
+
+Carrito: GASEOSA-350 × 12.
+
+- Escala: las unidades 10 a 12 al 5 %, 3 × 2000 × 5 % = 300. Base 23700, IVA 4503. Total 28203.
+- El obsequio cuenta las 12 unidades pagadas, también las tres con descuento: 1 JUGO-1L con precio de referencia 4000, cobrado 0, base 4000 e IVA 200 a cargo del vendedor.
+
+## `credito-excede-el-cupo` (golden obligatorio 5)
+
+Tendero CLI-CREDITO-BAJO con DIST-NORTE, cupo 50000, a crédito. Carrito y desglose de `escala-dos-tramos`.
+
+- Requerido = total = 56882. No cabe: 56882 > 50000. Falta 56882 − 50000 = 6882.
+
+## `obsequio-impuesto-a-cargo-del-vendedor`, `obsequio-impuesto-a-cargo-del-cliente` y `obsequio-sin-impuesto`
+
+Carrito de `obsequio-con-su-cantidad`, cambiando la política del obsequio del país. La línea no cambia: base 23700, IVA 4503.
+
+- A cargo del vendedor (la de Colombia): tasa 0.05, impuesto 200 informado con el vendedor como responsable. Base gravable 23700, impuestos 4503, total 28203.
+- A cargo del cliente: el obsequio suma su base y su impuesto. Base gravable 23700 + 4000 = 27700, impuestos 4503 + 200 = 4703, total 23700 + 4703 = 28403.
+- Sin impuesto: tasa y responsable en `null`, impuesto 0. Totales iguales a los del vendedor: 28203.
+
+## `obsequio-repetible-y-escala-completa`
+
+Carrito: GASEOSA-350 × 24.
+
+- Escala: unidades 10 a 19 al 5 %, 10 × 100 = 1000, y 20 a 24 al 10 %, 5 × 200 = 1000. Descuento 2000.
+- Base 46000, IVA 8740. Total 54740.
+- Obsequio: 12 cabe 2 veces en 24, así que son 2 jugos, base 8000, IVA 400 a cargo del vendedor.
+
+## `obsequio-no-activa-palancas`
+
+Cambios sobre la semilla: el obsequio regala una GASEOSA-350 por cada 12 y la escala de GASEOSA-350 pasa a 5 % desde la unidad 13.
+
+Carrito: GASEOSA-350 × 12.
+
+- Obsequio: 1 GASEOSA-350, base 2000, IVA 19 % = 380 a cargo del vendedor.
+- Con la unidad obsequiada serían 13 y se activaría la escala, pero solo cuentan las 12 pagadas: sin descuento.
+- Base 24000, IVA 4560. Total 28560.

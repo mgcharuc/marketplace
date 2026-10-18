@@ -1,0 +1,22 @@
+{
+  "description": "Un obsequio sin impuesto no informa tasa ni quién lo asume",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "country": {
+      "giftTaxPolicy": "NONE"
+    }
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 12
+      }
+    ]
+  }
+}

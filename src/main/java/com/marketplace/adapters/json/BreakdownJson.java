@@ -5,12 +5,15 @@ import com.marketplace.domain.money.Money;
 import com.marketplace.pricing.AppliedDiscount;
 import com.marketplace.pricing.Breakdown;
 import com.marketplace.pricing.ComboDiscount;
+import com.marketplace.pricing.CreditCheck;
+import com.marketplace.pricing.Gift;
 import com.marketplace.pricing.LineAmount;
 import com.marketplace.pricing.PricedLine;
 import com.marketplace.pricing.RuleAmount;
 import com.marketplace.pricing.ScaleDiscount;
 import com.marketplace.pricing.TierAmount;
 import com.marketplace.pricing.Totals;
+import java.math.BigDecimal;
 import java.util.List;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -35,9 +38,15 @@ public class BreakdownJson {
         breakdown.lines().forEach(line -> writeLine(lines.addObject(), line));
         ArrayNode discounts = node.putArray("discounts");
         breakdown.discounts().forEach(discount -> writeDiscount(discounts.addObject(), discount));
-        node.putArray("gifts");
+        ArrayNode gifts = node.putArray("gifts");
+        Money zero = new Money(BigDecimal.ZERO, breakdown.currency());
+        breakdown.gifts().forEach(gift -> writeGift(gifts.addObject(), gift, zero));
         writeTotals(node.putObject("totals"), breakdown.totals());
-        node.putNull("credit");
+        if (breakdown.credit() == null) {
+            node.putNull("credit");
+        } else {
+            writeCredit(node.putObject("credit"), breakdown.credit());
+        }
         return node;
     }
 
@@ -121,6 +130,26 @@ public class BreakdownJson {
                                 array.addObject().put("lineId", amount.lineId()),
                                 "amount",
                                 amount.amount()));
+    }
+
+    private static void writeGift(ObjectNode node, Gift gift, Money charged) {
+        node.put("ruleId", gift.ruleId());
+        node.put("sku", gift.sku().value());
+        node.put("name", gift.name());
+        node.put("quantity", gift.quantity());
+        putAmount(node, "referenceUnitPrice", gift.referenceUnitPrice());
+        putAmount(node, "chargedAmount", charged);
+        putAmount(node, "taxBase", gift.taxBase());
+        node.put("taxRate", gift.taxRate() == null ? null : gift.taxRate().toPlainString());
+        putAmount(node, "taxAmount", gift.taxAmount());
+        node.put("taxBorneBy", gift.taxBorneBy() == null ? null : gift.taxBorneBy().name());
+    }
+
+    private static void writeCredit(ObjectNode node, CreditCheck credit) {
+        putAmount(node, "available", credit.available());
+        putAmount(node, "required", credit.required());
+        node.put("fits", credit.fits());
+        putAmount(node, "shortfall", credit.shortfall());
     }
 
     private static void writeTotals(ObjectNode node, Totals totals) {

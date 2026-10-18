@@ -1,0 +1,22 @@
+{
+  "description": "El vendedor asume el impuesto del obsequio y no entra en el total",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "country": {
+      "giftTaxPolicy": "ABSORBED_BY_SELLER"
+    }
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 12
+      }
+    ]
+  }
+}

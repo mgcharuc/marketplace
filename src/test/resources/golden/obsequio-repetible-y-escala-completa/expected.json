@@ -1,0 +1,86 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 24,
+      "unitPrice": "2000",
+      "grossAmount": "48000",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-GAS350",
+          "amount": "2000"
+        }
+      ],
+      "taxBaseAllocations": [],
+      "taxableBase": "46000",
+      "taxRate": "0.19",
+      "taxAmount": "8740",
+      "netAmount": "54740"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "ESC-GAS350",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-GAS350",
+      "name": "Escala Gaseosa 350",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "2000",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "2000"
+        }
+      ],
+      "mode": "MARGINAL",
+      "tiers": [
+        {
+          "fromQty": 10,
+          "percent": "5",
+          "units": 10,
+          "amount": "1000"
+        },
+        {
+          "fromQty": 20,
+          "percent": "10",
+          "units": 5,
+          "amount": "1000"
+        }
+      ]
+    }
+  ],
+  "gifts": [
+    {
+      "ruleId": "OBS-JUGO",
+      "sku": "JUGO-1L",
+      "name": "Jugo de naranja 1 L",
+      "quantity": 2,
+      "referenceUnitPrice": "4000",
+      "chargedAmount": "0",
+      "taxBase": "8000",
+      "taxRate": "0.05",
+      "taxAmount": "400",
+      "taxBorneBy": "SELLER"
+    }
+  ],
+  "totals": {
+    "grossSubtotal": "48000",
+    "discountTotal": "2000",
+    "netSubtotal": "46000",
+    "taxableBase": "46000",
+    "taxTotal": "8740",
+    "total": "54740"
+  },
+  "credit": null
+}

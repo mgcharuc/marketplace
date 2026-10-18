@@ -2,21 +2,22 @@ package com.marketplace.adapters.json;
 
 import static com.marketplace.domain.config.ConfigFixtures.CO_MARCA_A;
 import static com.marketplace.domain.config.ConfigFixtures.EC_MARCA_A;
+import static com.marketplace.domain.config.ConfigFixtures.PIPELINE;
 import static com.marketplace.domain.config.ConfigFixtures.coMarcaA;
 import static com.marketplace.domain.config.ConfigFixtures.ecMarcaA;
+import static com.marketplace.domain.config.ConfigFixtures.gift;
+import static com.marketplace.pricing.Carts.cart;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.marketplace.domain.catalog.Quantity;
-import com.marketplace.domain.catalog.Sku;
 import com.marketplace.domain.config.ConfigVersion;
+import com.marketplace.domain.config.Scope;
 import com.marketplace.domain.config.Tenant;
-import com.marketplace.pricing.Cart;
-import com.marketplace.pricing.CartLine;
+import com.marketplace.domain.money.Money;
 import com.marketplace.pricing.CreditAvailability;
 import com.marketplace.pricing.PricingEngine;
 import com.marketplace.pricing.PricingInput;
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,19 +30,20 @@ class BreakdownJsonTest {
     private final BreakdownJson json = new BreakdownJson(mapper);
 
     private JsonNode render(ConfigVersion version, Tenant tenant, Object... skuAndQuantity) {
-        var lines = new ArrayList<CartLine>();
-        for (int i = 0; i < skuAndQuantity.length; i += 2) {
-            lines.add(
-                    new CartLine(
-                            new Sku((String) skuAndQuantity[i]),
-                            new Quantity((Integer) skuAndQuantity[i + 1])));
-        }
+        return render(version, tenant, CreditAvailability.none(), skuAndQuantity);
+    }
+
+    private JsonNode render(
+            ConfigVersion version,
+            Tenant tenant,
+            CreditAvailability credit,
+            Object... skuAndQuantity) {
         var input =
                 new PricingInput(
                         version,
                         tenant,
-                        new Cart(lines),
-                        CreditAvailability.none(),
+                        cart(skuAndQuantity),
+                        credit,
                         Instant.parse("2026-10-16T15:00:00Z"));
         return json.write(new PricingEngine().price(input));
     }
@@ -109,5 +111,59 @@ class BreakdownJsonTest {
         assertThat(line.get("scaleDiscounts").isEmpty()).isTrue();
         assertThat(line.get("taxBaseAllocations").isEmpty()).isTrue();
         assertThat(node.get("credit").isNull()).isTrue();
+    }
+
+    @Test
+    @DisplayName(
+            "Un obsequio lleva su precio de referencia, monto cobrado cero y quién asume su impuesto")
+    void writesGift() {
+        var gift = render(coMarcaA(1), CO_MARCA_A, "GASEOSA-350", 12).get("gifts").get(0);
+
+        assertThat(gift.toString())
+                .isEqualTo(
+                        "{\"ruleId\":\"OBS-JUGO\",\"sku\":\"JUGO-1L\",\"name\":\"JUGO-1L\","
+                                + "\"quantity\":1,\"referenceUnitPrice\":\"4000\","
+                                + "\"chargedAmount\":\"0\",\"taxBase\":\"4000\",\"taxRate\":\"0.05\","
+                                + "\"taxAmount\":\"200\",\"taxBorneBy\":\"SELLER\"}");
+    }
+
+    @Test
+    @DisplayName(
+            "Un obsequio sin impuesto deja en null la tasa y quién lo asume, con montos en la escala de la moneda")
+    void writesUntaxedGiftWithNulls() {
+        var version =
+                new ConfigVersion(
+                        "EC-MARCA-A",
+                        1,
+                        PIPELINE,
+                        ecMarcaA().products(),
+                        List.of(gift("OBS-AGUA", 10, Scope.sku("AGUA-500"), 5, "JUGO-EC-1L")));
+
+        var gift = render(version, EC_MARCA_A, "AGUA-500", 5).get("gifts").get(0);
+
+        assertThat(gift.get("chargedAmount").stringValue()).isEqualTo("0.00");
+        assertThat(gift.get("taxBase").stringValue()).isEqualTo("1.25");
+        assertThat(gift.get("taxAmount").stringValue()).isEqualTo("0.00");
+        assertThat(gift.get("taxRate").isNull()).isTrue();
+        assertThat(gift.get("taxBorneBy").isNull()).isTrue();
+    }
+
+    @Test
+    @DisplayName("El crédito lleva los montos como texto y si cabe como booleano")
+    void writesCredit() {
+        var credit =
+                render(
+                                coMarcaA(1),
+                                CO_MARCA_A,
+                                CreditAvailability.available(
+                                        new Money(new BigDecimal("50000"), CO_MARCA_A.currency())),
+                                "GASEOSA-350",
+                                25)
+                        .get("credit");
+
+        assertThat(credit.toString())
+                .isEqualTo(
+                        "{\"available\":\"50000\",\"required\":\"56882\",\"fits\":false,"
+                                + "\"shortfall\":\"6882\"}");
     }
 }

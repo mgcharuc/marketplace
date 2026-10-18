@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.marketplace.domain.money.Money;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -24,11 +25,24 @@ public final class BreakdownInvariants {
                 .isEqualTo(totals.grossSubtotal().minus(totals.discountTotal()));
         assertThat(totals.netSubtotal().amount())
                 .isEqualByComparingTo(sum(lines, PricedLine::taxableBase));
+        breakdown.gifts().forEach(BreakdownInvariants::checkGift);
+        List<Gift> charged =
+                breakdown.gifts().stream()
+                        .filter(gift -> gift.taxBorneBy() == TaxBearer.CUSTOMER)
+                        .toList();
         assertThat(totals.taxableBase().amount())
-                .isEqualByComparingTo(sum(lines, PricedLine::taxableBase));
+                .isEqualByComparingTo(
+                        sum(lines, PricedLine::taxableBase).add(sum(charged, Gift::taxBase)));
         assertThat(totals.taxTotal().amount())
-                .isEqualByComparingTo(sum(lines, PricedLine::taxAmount));
+                .isEqualByComparingTo(
+                        sum(lines, PricedLine::taxAmount).add(sum(charged, Gift::taxAmount)));
         assertThat(totals.total()).isEqualTo(totals.netSubtotal().plus(totals.taxTotal()));
+        assertThat(breakdown.gifts())
+                .extracting(Gift::ruleId)
+                .isSortedAccordingTo(Comparator.naturalOrder());
+        if (breakdown.credit() != null) {
+            checkCredit(breakdown.credit(), totals.total());
+        }
         for (AppliedDiscount discount : breakdown.discounts()) {
             assertThat(sum(discount.lineAmounts(), LineAmount::amount))
                     .as("reparto por línea de %s", discount.ruleId())
@@ -57,12 +71,49 @@ public final class BreakdownInvariants {
         assertThat(line.netAmount()).isEqualTo(line.taxableBase().plus(line.taxAmount()));
     }
 
+    private static void checkGift(Gift gift) {
+        assertThat(gift.quantity()).isPositive();
+        assertThat(gift.taxBase().amount())
+                .isEqualByComparingTo(
+                        gift.referenceUnitPrice().times(BigDecimal.valueOf(gift.quantity())));
+        if (gift.taxBorneBy() == null) {
+            assertThat(gift.taxRate()).isNull();
+            assertThat(gift.taxAmount().amount()).isZero();
+        } else {
+            assertThat(gift.taxAmount())
+                    .as("impuesto del obsequio de %s", gift.ruleId())
+                    .isEqualTo(
+                            Money.round(
+                                    gift.taxBase().times(gift.taxRate()),
+                                    gift.taxBase().currency()));
+        }
+    }
+
+    private static void checkCredit(CreditCheck credit, Money total) {
+        assertThat(credit.required()).isEqualTo(total);
+        boolean fits = credit.required().amount().compareTo(credit.available().amount()) <= 0;
+        assertThat(credit.fits()).isEqualTo(fits);
+        assertThat(credit.shortfall().amount())
+                .isEqualByComparingTo(
+                        fits
+                                ? BigDecimal.ZERO
+                                : credit.required().minus(credit.available()).amount());
+    }
+
     private static Stream<Money> allAmounts(Breakdown breakdown) {
         var totals = breakdown.totals();
         return Stream.of(
                         breakdown.lines().stream().flatMap(BreakdownInvariants::lineAmounts),
                         breakdown.discounts().stream()
                                 .flatMap(BreakdownInvariants::discountAmounts),
+                        breakdown.gifts().stream()
+                                .flatMap(
+                                        gift ->
+                                                Stream.of(
+                                                        gift.referenceUnitPrice(),
+                                                        gift.taxBase(),
+                                                        gift.taxAmount())),
+                        creditAmounts(breakdown.credit()),
                         Stream.of(
                                 totals.grossSubtotal(),
                                 totals.discountTotal(),
@@ -71,6 +122,12 @@ public final class BreakdownInvariants {
                                 totals.taxTotal(),
                                 totals.total()))
                 .flatMap(Function.identity());
+    }
+
+    private static Stream<Money> creditAmounts(CreditCheck credit) {
+        return credit == null
+                ? Stream.empty()
+                : Stream.of(credit.available(), credit.required(), credit.shortfall());
     }
 
     private static Stream<Money> lineAmounts(PricedLine line) {

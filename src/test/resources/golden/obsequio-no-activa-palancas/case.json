@@ -1,0 +1,57 @@
+{
+  "description": "Las unidades obsequiadas no cuentan para alcanzar la escala",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "rules": {
+      "OBS-JUGO": {
+        "id": "OBS-JUGO",
+        "name": "Gaseosa por cada 12 gaseosas",
+        "type": "OBSEQUIO",
+        "priority": 10,
+        "condition": {
+          "kind": "QUANTITY",
+          "scope": {
+            "kind": "SKU",
+            "ref": "GASEOSA-350"
+          },
+          "threshold": 12
+        },
+        "reward": {
+          "sku": "GASEOSA-350",
+          "qty": 1
+        },
+        "repeatable": true
+      },
+      "ESC-GAS350": {
+        "id": "ESC-GAS350",
+        "name": "Escala Gaseosa 350",
+        "type": "ESCALA",
+        "priority": 10,
+        "scope": {
+          "kind": "SKU",
+          "ref": "GASEOSA-350"
+        },
+        "mode": "MARGINAL",
+        "tiers": [
+          {
+            "fromQty": 13,
+            "percent": "5"
+          }
+        ]
+      }
+    }
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 12
+      }
+    ]
+  }
+}

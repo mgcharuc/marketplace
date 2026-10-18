@@ -14,13 +14,23 @@ import java.util.Map;
  * consumió. La escala cuenta posiciones solo sobre las unidades que siguen elegibles, ordenadas de
  * la más cara a la más barata, así que los tramos altos caen en las unidades más baratas. Los
  * descuentos de escala y los impuestos se redondean una vez por línea.
+ *
+ * <p>El obsequio cuenta las unidades pagadas de su alcance, con o sin descuento. Las unidades
+ * obsequiadas no activan otras palancas. Su impuesto se calcula sobre el precio de lista y solo
+ * entra en el total si el país lo cobra al cliente. El crédito compara el total final con el cupo
+ * disponible sin reservarlo.
  */
 public class PricingEngine {
 
     private final Map<Stage, PricingStage> stages = new EnumMap<>(Stage.class);
 
     public PricingEngine() {
-        List.of(new ComboStage(), new ScaleStage(), new TaxStage())
+        List.of(
+                        new ComboStage(),
+                        new ScaleStage(),
+                        new GiftStage(),
+                        new TaxStage(),
+                        new CreditStage())
                 .forEach(stage -> stages.put(stage.stage(), stage));
     }
 

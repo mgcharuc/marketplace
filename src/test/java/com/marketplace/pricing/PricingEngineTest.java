@@ -10,11 +10,10 @@ import static com.marketplace.domain.config.ConfigFixtures.ecMarcaA;
 import static com.marketplace.domain.config.ConfigFixtures.product;
 import static com.marketplace.domain.config.ConfigFixtures.scale;
 import static com.marketplace.domain.config.ConfigFixtures.tier;
+import static com.marketplace.pricing.Carts.cart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.marketplace.domain.catalog.Quantity;
-import com.marketplace.domain.catalog.Sku;
 import com.marketplace.domain.config.ConfigVersion;
 import com.marketplace.domain.config.Product;
 import com.marketplace.domain.config.Rule;
@@ -37,17 +36,6 @@ class PricingEngineTest {
     private static final Instant NOW = Instant.parse("2026-10-16T15:00:00Z");
 
     private final PricingEngine engine = new PricingEngine();
-
-    private static Cart cart(Object... skuAndQuantity) {
-        var lines = new ArrayList<CartLine>();
-        for (int i = 0; i < skuAndQuantity.length; i += 2) {
-            lines.add(
-                    new CartLine(
-                            new Sku((String) skuAndQuantity[i]),
-                            new Quantity((Integer) skuAndQuantity[i + 1])));
-        }
-        return new Cart(lines);
-    }
 
     private Breakdown price(ConfigVersion version, Tenant tenant, Cart cart) {
         var breakdown =

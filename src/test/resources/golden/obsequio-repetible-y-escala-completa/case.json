@@ -1,0 +1,18 @@
+{
+  "description": "El obsequio se repite por cada umbral y la escala cubre sus dos tramos",
+  "seed": "co-marca-a.v1",
+  "overrides": null,
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 24
+      }
+    ]
+  }
+}

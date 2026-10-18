@@ -47,6 +47,16 @@ public final class ConfigFixtures {
 
     private ConfigFixtures() {}
 
+    public static Tenant withCountry(Tenant tenant, Country country) {
+        return new Tenant(
+                tenant.id(),
+                country,
+                tenant.brand(),
+                tenant.orderNumberPrefix(),
+                tenant.quoteTtl(),
+                tenant.idempotencyTtl());
+    }
+
     public static TaxClass taxClass(String code, String rate) {
         return new TaxClass(code, new BigDecimal(rate));
     }

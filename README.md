@@ -61,6 +61,8 @@ El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión
 - **Una unidad recibe como máximo un descuento.** La escala cuenta posiciones solo sobre las unidades que el combo no consumió.
 - **Dentro de una etapa**, las reglas se aplican por prioridad y luego por id, y cada una toma todo lo que puede de las unidades que quedan. No se busca la combinación más favorable para el cliente.
 - **Los impuestos van después de los descuentos**, porque la base gravable es lo que queda después de los descuentos comerciales. El descuento del combo se reparte entre sus líneas solo para calcular la base gravable de cada producto, que puede tener otra tasa. No aparece como un descuento por producto.
+- **El obsequio va después de los descuentos.** Cuenta las unidades pagadas de su alcance, con o sin descuento. Con una condición por monto usa la base gravable que queda después de los descuentos. Las unidades obsequiadas no son líneas del pedido, así que no activan escalas, combos ni otros obsequios. Cada regla aparece por separado en `gifts`, con precio de referencia y monto cobrado 0. Su impuesto se calcula sobre el precio de lista y depende del país. Puede no tener impuesto, quedar a cargo del vendedor, que lo informa sin sumarlo al total, o a cargo del cliente. En este último caso su base entra en la base gravable y su impuesto en el total; el obsequio en sí nunca se cobra.
+- **El crédito va al final**, porque compara el total con impuestos con el cupo disponible del tendero con ese distribuidor. Informa si el pedido cabe y cuánto falta, sin reservar cupo. En una compra de contado `credit` es `null`.
 - Una etapa que no está en el pipeline de una versión no se aplica.
 
 ## Política de redondeo
@@ -70,9 +72,9 @@ Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueb
 - Cada moneda define su escala y su modo de redondeo, `HALF_UP` o `HALF_EVEN`. La escala es la de la práctica comercial, que puede no coincidir con la oficial.
 - `Money` completa con ceros un valor con menos decimales que la moneda (`2.3` pasa a `2.30` en USD) y rechaza uno con más. Nunca redondea por su cuenta.
 - Los cálculos intermedios, como multiplicar por una tasa, devuelven `BigDecimal` con precisión completa. `Money.round` es el único paso de un valor intermedio a un monto.
-- Solo se redondea en tres puntos: el descuento de cada escala sobre cada línea, el descuento total de cada combo antes de repartirlo y el impuesto de cada línea. Los totales del pedido son sumas de valores ya redondeados y nunca se redondean, así el total coincide con la suma de las líneas, igual que en la factura y en el ERP.
+- Solo se redondea en tres puntos: el descuento de cada escala sobre cada línea, el descuento total de cada combo antes de repartirlo y el impuesto de cada línea y de cada obsequio. Los totales del pedido son sumas de valores ya redondeados y nunca se redondean, así el total coincide con la suma de las líneas, igual que en la factura y en el ERP.
 - Para repartir un monto en partes proporcionales se usa el método del mayor residuo (`Allocation.split`). Cada cuota se trunca a la escala de la moneda y las unidades mínimas que sobran van, de a una, a las partes con mayor fracción descartada. Si dos partes empatan, gana el SKU menor o el tramo que empieza antes. La suma de las cuotas siempre es el monto repartido.
 
 ## Casos golden
 
-Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos y tramos. La derivación de cada monto está en `src/test/resources/golden/README.md`.
+Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos, tramos y obsequios, y que el crédito compare el total con el cupo. La derivación de cada monto está en `src/test/resources/golden/README.md`.

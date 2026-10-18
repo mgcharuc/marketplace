@@ -19,6 +19,14 @@ public record PricingInput(
             throw new IllegalArgumentException(
                     "La versión es de " + config.tenantId() + " y no de " + tenant.id());
         }
+        if (credit instanceof CreditAvailability.Available(var available)
+                && !available.currency().equals(tenant.currency())) {
+            throw new IllegalArgumentException(
+                    "El cupo está en "
+                            + available.currency().code()
+                            + " y el tenant usa "
+                            + tenant.currency().code());
+        }
         for (CartLine line : cart.lines()) {
             if (config.product(line.sku()).isEmpty()) {
                 throw new IllegalArgumentException(

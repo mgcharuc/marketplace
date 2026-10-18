@@ -45,15 +45,10 @@ final class ComboStage implements PricingStage {
         Map<Sku, BigDecimal> consumedValue = new LinkedHashMap<>();
         for (ComboComponent component : rule.components()) {
             LineState line = context.line(component.sku()).orElseThrow();
-            Money setValue =
-                    new Money(
-                            line.unitPrice().times(BigDecimal.valueOf(component.qty())),
-                            context.currency());
+            Money setValue = line.unitPrice().forUnits(component.qty());
             listValue = listValue.plus(setValue);
             consumedValue.merge(
-                    component.sku(),
-                    setValue.times(BigDecimal.valueOf(applications)),
-                    BigDecimal::add);
+                    component.sku(), setValue.forUnits(applications).amount(), BigDecimal::add);
             line.consume(component.qty() * applications);
         }
         Money comboPrice = new Money(rule.comboPrice(), context.currency());

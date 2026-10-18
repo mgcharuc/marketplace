@@ -42,6 +42,10 @@ final class LineState {
         return product;
     }
 
+    int quantity() {
+        return quantity;
+    }
+
     Money unitPrice() {
         return unitPrice;
     }
@@ -55,7 +59,7 @@ final class LineState {
     }
 
     Money gross() {
-        return new Money(unitPrice.times(BigDecimal.valueOf(quantity)), unitPrice.currency());
+        return unitPrice.forUnits(quantity);
     }
 
     void consume(int units) {
@@ -83,6 +87,10 @@ final class LineState {
             base = base.minus(allocation.amount());
         }
         return base;
+    }
+
+    Money taxAmount() {
+        return taxAmount;
     }
 
     void tax(Money amount) {
