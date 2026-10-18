@@ -228,6 +228,14 @@ class JsonSeedSourceTest {
     }
 
     @Test
+    @DisplayName("Rechaza un cupo de crédito con más decimales que la moneda del país")
+    void rejectsCreditWithInvalidScale() {
+        assertViolations(
+                new JsonSeedSource("seed/invalid-credit-scale")::tenants,
+                new ConfigViolation("INVALID_VALUE", "tenants[0]"));
+    }
+
+    @Test
     @DisplayName("Falla si un tenant no tiene su versión inicial")
     void rejectsMissingInitialVersion() {
         var source = new JsonSeedSource("seed/missing-version");

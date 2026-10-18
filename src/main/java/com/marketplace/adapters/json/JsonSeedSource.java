@@ -20,6 +20,7 @@ import com.marketplace.domain.config.GiftTaxPolicy;
 import com.marketplace.domain.config.TaxClass;
 import com.marketplace.domain.config.Tenant;
 import com.marketplace.domain.money.CurrencyConfig;
+import com.marketplace.domain.money.Money;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.RoundingMode;
@@ -36,10 +37,6 @@ import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Lee las semillas del classpath: {@code tenants.json} con países y tenants, y la versión 1 de cada
- * tenant en {@code <tenant>.v1.json}.
- */
 public class JsonSeedSource implements SeedSource {
 
     private static final String DEFAULT_DIRECTORY = "seed";
@@ -177,11 +174,13 @@ public class JsonSeedSource implements SeedSource {
                                                 distributor.get("name").stringValue()))
                         .toList();
         List<CustomerSeed> customers =
-                node.get("customers").values().stream().map(JsonSeedSource::customer).toList();
+                node.get("customers").values().stream()
+                        .map(customer -> customer(customer, country))
+                        .toList();
         return new TenantSeed(tenant, distributors, customers);
     }
 
-    private static CustomerSeed customer(JsonNode node) {
+    private static CustomerSeed customer(JsonNode node, Country country) {
         return new CustomerSeed(
                 node.get("id").stringValue(),
                 node.get("name").stringValue(),
@@ -190,7 +189,10 @@ public class JsonSeedSource implements SeedSource {
                                 account ->
                                         new CreditAccountSeed(
                                                 account.get("distributorId").stringValue(),
-                                                decimal(account, "available")))
+                                                new Money(
+                                                                decimal(account, "available"),
+                                                                country.currency())
+                                                        .amount()))
                         .toList());
     }
 

@@ -259,6 +259,28 @@ class PricingEngineTest {
     }
 
     @Test
+    @DisplayName(
+            "Con la escala antes del combo, las unidades del combo ayudan a alcanzar el tramo y el descuento crece")
+    void appliesStagesInPipelineOrder() {
+        var scaleFirst =
+                new ConfigVersion(
+                        "CO-MARCA-A",
+                        1,
+                        List.of(Stage.SCALE, Stage.COMBO, Stage.GIFT, Stage.TAX, Stage.CREDIT),
+                        coMarcaAProducts(),
+                        coMarcaARules());
+
+        var breakdown = price(scaleFirst, CO_MARCA_A, cart("GASEOSA-1500", 3, "SNACK-PAPAS", 3));
+
+        assertThat(breakdown.discounts())
+                .extracting(discount -> discount.ruleId() + "=" + plain(discount.amount()))
+                .containsExactly("ESC-GAS1500=250", "CMB-FIESTA=1400");
+        assertThat(plain(breakdown.lines().get(0).taxAmount())).isEqualTo("2630");
+        assertThat(plain(breakdown.totals().taxTotal())).isEqualTo("3563");
+        assertThat(plain(breakdown.totals().total())).isEqualTo("22313");
+    }
+
+    @Test
     @DisplayName("El mismo carrito da el mismo desglose aunque las reglas vengan en otro orden")
     void isDeterministic() {
         var cart = cart("GASEOSA-1500", 5, "SNACK-PAPAS", 3, "GASEOSA-350", 25);

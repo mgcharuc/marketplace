@@ -6,7 +6,7 @@ API para cotizar y confirmar pedidos de tenderos a distribuidores de bebidas, en
 
 ### Requisitos
 
-- JDK 21. Con [SDKMAN](https://sdkman.io): `sdk env install` instala y activa la versión fijada en `.sdkmanrc`. La activación solo dura en esa terminal; en cada terminal nueva ejecute `sdk env` dentro del proyecto, o active `sdkman_auto_env=true` en `~/.sdkman/etc/config` para que se aplique al entrar a la carpeta. Con un JDK anterior, Maven falla con `has been compiled by a more recent version of the Java Runtime`.
+- JDK 21. Con [SDKMAN](https://sdkman.io): `sdk env install` instala y activa la versión fijada en `.sdkmanrc`. La activación solo dura en esa terminal. En cada terminal nueva ejecute `sdk env` dentro del proyecto, o active `sdkman_auto_env=true` en `~/.sdkman/etc/config` para que se aplique al entrar a la carpeta. Con un JDK anterior, Maven falla con `has been compiled by a more recent version of the Java Runtime`.
 - Docker o Podman para las pruebas de integración (PostgreSQL 17 con Testcontainers).
 
 ### Compilar y probar
@@ -23,7 +23,7 @@ Ejecuta las pruebas unitarias y de integración, el reporte de cobertura (`targe
 
 ### Usar Podman en lugar de Docker
 
-Con Docker no se requiere configuración adicional. Con Podman rootless (Linux/WSL), active el socket compatible con la API de Docker e indique su ubicación a Testcontainers; sin estos pasos, las pruebas de integración se omiten:
+Con Docker no se requiere configuración adicional. Con Podman rootless (Linux/WSL), active el socket compatible con la API de Docker e indique su ubicación a Testcontainers. Sin estos pasos, las pruebas de integración se omiten.
 
 ```bash
 systemctl --user enable --now podman.socket
@@ -49,7 +49,7 @@ Ningún valor de moneda, escala, redondeo ni tasa está escrito en el código. L
 - **Tenant** (país y marca): prefijo del número de orden y tiempos de vigencia de la cotización y de la clave de idempotencia. Toma la configuración fiscal y monetaria de su país.
 - **Versión comercial del tenant**: productos con su precio de lista y su clase tributaria, reglas de combo, escala y obsequio, y el orden de las etapas. Las versiones se numeran de forma consecutiva y una versión publicada no se modifica.
 
-Antes de publicar una versión se valida completa: tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
+Antes de publicar una versión se valida completa: un pipeline con los impuestos después de las etapas comerciales, el crédito al final y sin etapas repetidas ni faltantes, tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
 
 Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
 
@@ -61,9 +61,9 @@ El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión
 - **Una unidad recibe como máximo un descuento.** La escala cuenta posiciones solo sobre las unidades que el combo no consumió.
 - **Dentro de una etapa**, las reglas se aplican por prioridad y luego por id, y cada una toma todo lo que puede de las unidades que quedan. No se busca la combinación más favorable para el cliente.
 - **Los impuestos van después de los descuentos**, porque la base gravable es lo que queda después de los descuentos comerciales. El descuento del combo se reparte entre sus líneas solo para calcular la base gravable de cada producto, que puede tener otra tasa. No aparece como un descuento por producto.
-- **El obsequio va después de los descuentos.** Cuenta las unidades pagadas de su alcance, con o sin descuento. Con una condición por monto usa la base gravable que queda después de los descuentos. Las unidades obsequiadas no son líneas del pedido, así que no activan escalas, combos ni otros obsequios. Cada regla aparece por separado en `gifts`, con precio de referencia y monto cobrado 0. Su impuesto se calcula sobre el precio de lista y depende del país. Puede no tener impuesto, quedar a cargo del vendedor, que lo informa sin sumarlo al total, o a cargo del cliente. En este último caso su base entra en la base gravable y su impuesto en el total; el obsequio en sí nunca se cobra.
+- **El obsequio va después de los descuentos.** Cuenta las unidades pagadas de su alcance, con o sin descuento. Con una condición por monto usa la base gravable que queda después de los descuentos. Las unidades obsequiadas no son líneas del pedido, así que no activan escalas, combos ni otros obsequios. Cada regla aparece por separado en `gifts`, con precio de referencia y monto cobrado 0. Su impuesto se calcula sobre el precio de lista y depende del país. Puede no tener impuesto, quedar a cargo del vendedor, que lo informa sin sumarlo al total, o a cargo del cliente. En este último caso su base entra en la base gravable y su impuesto en el total. El obsequio en sí nunca se cobra.
 - **El crédito va al final**, porque compara el total con impuestos con el cupo disponible del tendero con ese distribuidor. Informa si el pedido cabe y cuánto falta, sin reservar cupo. En una compra de contado `credit` es `null`.
-- Una etapa que no está en el pipeline de una versión no se aplica.
+- Las etapas comerciales (combo, escala y obsequio) se pueden reordenar u omitir en una versión, y una etapa omitida no se aplica. Los impuestos siempre van después de ellas y el crédito al final. Una versión que no lo cumple no se publica. Si hay un obsequio por monto, además debe ir después de los descuentos.
 
 ## Política de redondeo
 
@@ -78,3 +78,7 @@ Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueb
 ## Casos golden
 
 Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos, tramos y obsequios, y que el crédito compare el total con el cupo. La derivación de cada monto está en `src/test/resources/golden/README.md`.
+
+## Pendientes y por qué
+
+- **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.

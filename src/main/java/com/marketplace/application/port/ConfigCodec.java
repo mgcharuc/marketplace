@@ -7,6 +7,9 @@ public interface ConfigCodec {
 
     String encode(ConfigVersion version);
 
-    /** Falla con la lista completa de violaciones si el texto no tiene la forma esperada. */
+    /**
+     * Falla con {@code ConfigInvalidException} si el texto no tiene la forma esperada. Informa los
+     * errores de forma juntos y se detiene en el primer valor que el dominio rechaza.
+     */
     ConfigVersion decode(String text);
 }
