@@ -48,6 +48,12 @@ public class TestDoublesConfiguration {
     }
 
     @Bean
+    @Primary
+    CrashingRelayHooks crashingRelayHooks() {
+        return new CrashingRelayHooks();
+    }
+
+    @Bean
     DatabaseCleaner databaseCleaner(
             JdbcTemplate jdbc,
             LoadSeeds loadSeeds,
@@ -56,7 +62,8 @@ public class TestDoublesConfiguration {
             FailingOutbox outbox,
             FakeErp erp,
             FakePushProvider push,
-            FixedJitter jitter) {
-        return new DatabaseCleaner(jdbc, loadSeeds, time, ids, outbox, erp, push, jitter);
+            FixedJitter jitter,
+            CrashingRelayHooks hooks) {
+        return new DatabaseCleaner(jdbc, loadSeeds, time, ids, outbox, erp, push, jitter, hooks);
     }
 }

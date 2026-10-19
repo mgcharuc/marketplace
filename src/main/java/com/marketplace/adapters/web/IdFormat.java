@@ -9,6 +9,9 @@ final class IdFormat {
     static final String QUOTE_ID = "q_" + ULID;
     static final String ORDER_ID = "o_" + ULID;
 
+    private static final Pattern EVENT =
+            Pattern.compile(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
     private static final Pattern QUOTE = Pattern.compile(QUOTE_ID);
     private static final Pattern ORDER = Pattern.compile(ORDER_ID);
 
@@ -20,5 +23,9 @@ final class IdFormat {
 
     static boolean isOrderId(String value) {
         return ORDER.matcher(value).matches();
+    }
+
+    static boolean isEventId(String value) {
+        return EVENT.matcher(value).matches();
     }
 }

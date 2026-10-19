@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.marketplace.application.port.Outbox;
 import com.marketplace.application.port.OutboxRepository;
+import com.marketplace.application.port.RequeueResult;
 import com.marketplace.application.port.UnitOfWork;
 import com.marketplace.domain.outbox.Destination;
 import com.marketplace.domain.outbox.OutboxEvent;
@@ -12,6 +13,7 @@ import com.marketplace.domain.outbox.OutboxStatus;
 import com.marketplace.support.FixedTimeSource;
 import com.marketplace.support.IntegrationTest;
 import com.marketplace.support.Latches;
+import com.marketplace.support.LockWaits;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
@@ -144,6 +146,78 @@ class JpaOutboxRepositoryIT {
                 .hasMessage("El evento " + id(9) + " no existe");
     }
 
+    @Test
+    @DisplayName(
+            "Reencolar un evento fallido lo deja pendiente, sin intentos y con una ventana nueva")
+    void requeuesFailedEvent() {
+        append(1, OutboxStatus.PENDING, NOW);
+        unitOfWork.run(() -> events.markFailed(id(1), 12, "ERP caído"));
+        Instant later = NOW.plusSeconds(3600);
+
+        RequeueResult result = unitOfWork.execute(() -> events.requeue(id(1), later));
+
+        assertThat(result).isEqualTo(new RequeueResult.Requeued());
+        assertThat(window(1))
+                .containsEntry("status", "PENDING")
+                .containsEntry("attempts", 0)
+                .containsEntry("next_attempt_at", Timestamp.from(later))
+                .containsEntry("retry_window_start", Timestamp.from(later));
+    }
+
+    @Test
+    @DisplayName("Reencolar solo cambia eventos fallidos y dice por qué rechaza los demás")
+    void requeueOnlyChangesFailedEvents() {
+        append(1, OutboxStatus.DISCARDED, NOW);
+        append(2, OutboxStatus.PENDING, NOW.plusSeconds(10));
+        Instant later = NOW.plusSeconds(3600);
+
+        assertThat(unitOfWork.execute(() -> events.requeue(id(1), later)))
+                .isEqualTo(new RequeueResult.NotFailed(OutboxStatus.DISCARDED));
+        assertThat(unitOfWork.execute(() -> events.requeue(id(2), later)))
+                .isEqualTo(new RequeueResult.NotFailed(OutboxStatus.PENDING));
+        assertThat(unitOfWork.execute(() -> events.requeue(id(9), later)))
+                .isEqualTo(new RequeueResult.NotFound());
+        assertThat(window(1))
+                .containsEntry("status", "DISCARDED")
+                .containsEntry("next_attempt_at", Timestamp.from(NOW))
+                .containsEntry("retry_window_start", Timestamp.from(NOW));
+        assertThat(window(2))
+                .containsEntry("status", "PENDING")
+                .containsEntry("next_attempt_at", Timestamp.from(NOW.plusSeconds(10)))
+                .containsEntry("retry_window_start", Timestamp.from(NOW));
+    }
+
+    @Test
+    @DisplayName(
+            "Reencolar espera al relay que tiene el evento y lo reencola si este lo dejó fallido")
+    void requeueWaitsForTheRelayHoldingTheEvent() throws Exception {
+        append(1, OutboxStatus.PENDING, NOW);
+        var locked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var relay =
+                    executor.submit(
+                            () ->
+                                    unitOfWork.run(
+                                            () -> {
+                                                events.lockNextPending(NOW);
+                                                locked.countDown();
+                                                Latches.await(release);
+                                                events.markFailed(id(1), 3, "ERP caído");
+                                            }));
+            Latches.await(locked);
+            var requeue =
+                    executor.submit(() -> unitOfWork.execute(() -> events.requeue(id(1), NOW)));
+            LockWaits.await(jdbc, 1);
+            release.countDown();
+            relay.get(10, TimeUnit.SECONDS);
+
+            assertThat(requeue.get(10, TimeUnit.SECONDS)).isEqualTo(new RequeueResult.Requeued());
+        }
+        assertThat(window(1)).containsEntry("status", "PENDING");
+    }
+
     private Optional<OutboxEvent> lockAt(Instant now) {
         return unitOfWork.execute(() -> events.lockNextPending(now));
     }
@@ -167,6 +241,13 @@ class JpaOutboxRepositoryIT {
     private Map<String, Object> row(int n) {
         return jdbc.queryForMap(
                 "SELECT status, attempts, next_attempt_at, last_error, sent_at FROM outbox_event WHERE id = ?",
+                id(n));
+    }
+
+    private Map<String, Object> window(int n) {
+        return jdbc.queryForMap(
+                "SELECT status, attempts, next_attempt_at, retry_window_start FROM outbox_event"
+                        + " WHERE id = ?",
                 id(n));
     }
 

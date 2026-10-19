@@ -1,6 +1,7 @@
 package com.marketplace.adapters.persistence.outbox;
 
 import com.marketplace.application.port.OutboxRepository;
+import com.marketplace.application.port.RequeueResult;
 import com.marketplace.domain.outbox.OutboxEvent;
 import com.marketplace.domain.outbox.OutboxStatus;
 import java.time.Instant;
@@ -45,6 +46,21 @@ class JpaOutboxRepository implements OutboxRepository {
     @Override
     public void markDiscarded(UUID id, int attempts, String error) {
         requireOne(events.close(id, OutboxStatus.DISCARDED.name(), attempts, error), id);
+    }
+
+    // Con la fila bloqueada, un relay que tenga tomado el evento termina antes de leer su estado.
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public RequeueResult requeue(UUID id, Instant now) {
+        Optional<OutboxStatus> status = events.lockStatus(id).map(OutboxStatus::valueOf);
+        if (status.isEmpty()) {
+            return new RequeueResult.NotFound();
+        }
+        if (status.get() != OutboxStatus.FAILED) {
+            return new RequeueResult.NotFailed(status.get());
+        }
+        requireOne(events.requeue(id, now), id);
+        return new RequeueResult.Requeued();
     }
 
     private static void requireOne(int updated, UUID id) {

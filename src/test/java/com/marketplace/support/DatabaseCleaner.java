@@ -21,6 +21,7 @@ public class DatabaseCleaner {
     private final FakeErp erp;
     private final FakePushProvider push;
     private final FixedJitter jitter;
+    private final CrashingRelayHooks hooks;
 
     DatabaseCleaner(
             JdbcTemplate jdbc,
@@ -30,7 +31,8 @@ public class DatabaseCleaner {
             FailingOutbox outbox,
             FakeErp erp,
             FakePushProvider push,
-            FixedJitter jitter) {
+            FixedJitter jitter,
+            CrashingRelayHooks hooks) {
         this.jdbc = jdbc;
         this.loadSeeds = loadSeeds;
         this.time = time;
@@ -39,6 +41,7 @@ public class DatabaseCleaner {
         this.erp = erp;
         this.push = push;
         this.jitter = jitter;
+        this.hooks = hooks;
     }
 
     public void clean() {
@@ -50,6 +53,7 @@ public class DatabaseCleaner {
         erp.reset();
         push.reset();
         jitter.reset();
+        hooks.reset();
         loadSeeds.handle();
     }
 }

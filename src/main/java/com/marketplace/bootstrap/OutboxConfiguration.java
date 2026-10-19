@@ -6,12 +6,14 @@ import com.marketplace.adapters.delivery.LoggingPushClient;
 import com.marketplace.adapters.delivery.PushDeliverer;
 import com.marketplace.adapters.system.RandomJitter;
 import com.marketplace.application.outbox.OutboxRelay;
+import com.marketplace.application.outbox.RequeueEvent;
 import com.marketplace.application.port.DeliveryLog;
 import com.marketplace.application.port.ErpClient;
 import com.marketplace.application.port.EventDeliverer;
 import com.marketplace.application.port.Jitter;
 import com.marketplace.application.port.OutboxRepository;
 import com.marketplace.application.port.PushClient;
+import com.marketplace.application.port.RelayHooks;
 import com.marketplace.application.port.TimeSource;
 import com.marketplace.application.port.UnitOfWork;
 import java.util.List;
@@ -37,6 +39,11 @@ class OutboxConfiguration {
     }
 
     @Bean
+    RelayHooks relayHooks() {
+        return RelayHooks.NONE;
+    }
+
+    @Bean
     ErpDeliverer erpDeliverer(ErpClient erp, DeliveryLog deliveries, TimeSource time) {
         return new ErpDeliverer(erp, deliveries, time);
     }
@@ -52,7 +59,13 @@ class OutboxConfiguration {
             List<EventDeliverer> deliverers,
             UnitOfWork unitOfWork,
             TimeSource time,
-            Jitter jitter) {
-        return new OutboxRelay(events, deliverers, unitOfWork, time, jitter);
+            Jitter jitter,
+            RelayHooks hooks) {
+        return new OutboxRelay(events, deliverers, unitOfWork, time, jitter, hooks);
+    }
+
+    @Bean
+    RequeueEvent requeueEvent(OutboxRepository events, UnitOfWork unitOfWork, TimeSource time) {
+        return new RequeueEvent(events, unitOfWork, time);
     }
 }

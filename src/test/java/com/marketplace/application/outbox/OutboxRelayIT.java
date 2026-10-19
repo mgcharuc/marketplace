@@ -1,23 +1,31 @@
 package com.marketplace.application.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.marketplace.application.order.ConfirmOrder;
 import com.marketplace.application.order.ConfirmOrderCommand;
 import com.marketplace.application.quote.QuoteCart;
 import com.marketplace.application.quote.QuoteCartCommand;
+import com.marketplace.domain.outbox.Destination;
+import com.marketplace.support.CrashingRelayHooks;
 import com.marketplace.support.FakeErp;
 import com.marketplace.support.FakePushProvider;
 import com.marketplace.support.FixedJitter;
 import com.marketplace.support.FixedTimeSource;
 import com.marketplace.support.IntegrationTest;
+import com.marketplace.support.Latches;
 import com.marketplace.support.OrderFlow;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +53,7 @@ class OutboxRelayIT {
     @Autowired FakePushProvider push;
     @Autowired FixedTimeSource time;
     @Autowired FixedJitter jitter;
+    @Autowired CrashingRelayHooks hooks;
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
 
@@ -231,6 +240,70 @@ class OutboxRelayIT {
                 .containsEntry("last_error", "Error al procesar el evento");
         assertThat(event(PUSH_EVENT)).containsEntry("status", "SENT");
         assertThat(output.getOut()).contains("No se pudo procesar el evento " + ERP_EVENT);
+    }
+
+    @Test
+    @DisplayName(
+            "Si el relay cae después de entregar al ERP, reenvía el mismo evento y el ERP lo guarda una vez")
+    void crashAfterErpDeliveryResendsTheSameEvent() {
+        confirm("CO-MARCA-A", "CLI-CONTADO", "DIST-NORTE", "GASEOSA-350");
+        hooks.armFor(Destination.ERP);
+
+        assertThatThrownBy(relay::runOnce)
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Caída simulada tras entregar a ERP");
+        assertThat(event(ERP_EVENT))
+                .containsEntry("status", "PENDING")
+                .containsEntry("attempts", 0)
+                .containsEntry("next_attempt_at", at(START));
+        assertThat(deliveries()).containsExactly(ERP_EVENT + " ERP");
+
+        assertThat(relay.runOnce()).isEqualTo(new RelayResult(2, 0, 0, 0));
+        assertThat(erp.calls()).isEqualTo(2);
+        assertThat(erp.received()).containsOnlyKeys(ERP_EVENT);
+        assertThat(event(ERP_EVENT)).containsEntry("status", "SENT").containsEntry("attempts", 0);
+    }
+
+    @Test
+    @DisplayName("Si el relay cae después de enviar la notificación, no la vuelve a enviar")
+    void crashAfterPushDeliveryDoesNotResend() {
+        confirm("CO-MARCA-A", "CLI-CONTADO", "DIST-NORTE", "GASEOSA-350");
+        hooks.armFor(Destination.PUSH);
+
+        assertThatThrownBy(relay::runOnce)
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Caída simulada tras entregar a PUSH");
+        assertThat(event(ERP_EVENT)).containsEntry("status", "SENT");
+        assertThat(event(PUSH_EVENT))
+                .containsEntry("status", "PENDING")
+                .containsEntry("attempts", 0);
+
+        assertThat(relay.runOnce()).isEqualTo(new RelayResult(1, 0, 0, 0));
+        assertThat(push.sent()).hasSize(1);
+        assertThat(event(PUSH_EVENT)).containsEntry("status", "SENT");
+    }
+
+    @Test
+    @DisplayName("Un segundo relay salta el evento que el primero tiene tomado y entrega los demás")
+    void secondRelaySkipsTheLockedEvent() throws Exception {
+        int orders = 3;
+        for (int i = 0; i < orders; i++) {
+            confirm("CO-MARCA-A", "CLI-CONTADO", "DIST-NORTE", "GASEOSA-350");
+        }
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        erp.holdNext(entered, release);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<RelayResult> first = executor.submit(relay::runOnce);
+            Latches.await(entered);
+
+            assertThat(relay.runOnce()).isEqualTo(new RelayResult(2 * orders - 1, 0, 0, 0));
+            release.countDown();
+            assertThat(first.get(10, TimeUnit.SECONDS)).isEqualTo(new RelayResult(1, 0, 0, 0));
+        }
+        assertThat(erp.calls()).isEqualTo(orders);
+        assertThat(push.sent()).hasSize(orders);
     }
 
     private void confirm(String tenantId, String customerId, String distributorId, String sku) {

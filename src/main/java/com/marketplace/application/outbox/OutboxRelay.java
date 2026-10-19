@@ -4,6 +4,7 @@ import com.marketplace.application.port.DeliveryException;
 import com.marketplace.application.port.EventDeliverer;
 import com.marketplace.application.port.Jitter;
 import com.marketplace.application.port.OutboxRepository;
+import com.marketplace.application.port.RelayHooks;
 import com.marketplace.application.port.TimeSource;
 import com.marketplace.application.port.UnitOfWork;
 import com.marketplace.domain.outbox.Destination;
@@ -22,7 +23,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Entrega los eventos pendientes, cada uno en su propia transacción y con su fila bloqueada. Un
  * fallo se reintenta mientras la ventana del destino siga abierta. Si algo falla fuera de la
- * entrega, el evento se pospone para que no frene a los demás.
+ * entrega, el evento se pospone para que no frene a los demás. Un error de {@link RelayHooks} se
+ * trata como una caída del proceso, así que corta la ejecución y el evento queda pendiente sin
+ * contar el intento.
  */
 public class OutboxRelay {
 
@@ -41,13 +44,15 @@ public class OutboxRelay {
     private final UnitOfWork unitOfWork;
     private final TimeSource time;
     private final Jitter jitter;
+    private final RelayHooks hooks;
 
     public OutboxRelay(
             OutboxRepository events,
             List<EventDeliverer> deliverers,
             UnitOfWork unitOfWork,
             TimeSource time,
-            Jitter jitter) {
+            Jitter jitter,
+            RelayHooks hooks) {
         this.events = events;
         for (EventDeliverer deliverer : deliverers) {
             if (this.deliverers.put(deliverer.destination(), deliverer) != null) {
@@ -63,6 +68,7 @@ public class OutboxRelay {
         this.unitOfWork = unitOfWork;
         this.time = time;
         this.jitter = jitter;
+        this.hooks = hooks;
     }
 
     public RelayResult runOnce() {
@@ -85,6 +91,8 @@ public class OutboxRelay {
         var locked = new AtomicReference<OutboxEvent>();
         try {
             return unitOfWork.execute(() -> deliverNext(locked));
+        } catch (HookFailure e) {
+            throw e.getCause();
         } catch (RuntimeException e) {
             if (locked.get() == null) {
                 throw e;
@@ -113,6 +121,11 @@ public class OutboxRelay {
             deliverers.get(event.destination()).deliver(event);
         } catch (DeliveryException | RuntimeException e) {
             return failed(event, now, e);
+        }
+        try {
+            hooks.afterDeliver(event);
+        } catch (RuntimeException e) {
+            throw new HookFailure(e);
         }
         events.markSent(event.id(), now);
         log.info("Evento {} entregado a {}", event.id(), event.destination());
@@ -154,5 +167,17 @@ public class OutboxRelay {
         log.error(
                 "No se pudo procesar el evento {}, se reintenta desde {}", event.id(), next, error);
         return Outcome.RETRIED;
+    }
+
+    private static final class HookFailure extends RuntimeException {
+
+        HookFailure(RuntimeException cause) {
+            super(cause);
+        }
+
+        @Override
+        public synchronized RuntimeException getCause() {
+            return (RuntimeException) super.getCause();
+        }
     }
 }

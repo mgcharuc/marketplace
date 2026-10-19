@@ -57,6 +57,15 @@ class JpaDeliveryLogIT {
         assertThat(recorded()).containsExactly(EVENT + " PUSH");
     }
 
+    @Test
+    @DisplayName("Una entrega registrada se encuentra solo para su destino")
+    void findsDeliveryOnlyForItsDestination() {
+        deliveries.record(EVENT, Destination.PUSH, FixedTimeSource.START);
+
+        assertThat(deliveries.exists(EVENT, Destination.PUSH)).isTrue();
+        assertThat(deliveries.exists(EVENT, Destination.ERP)).isFalse();
+    }
+
     private List<String> recorded() {
         return jdbc.queryForList(
                 "SELECT event_id::text || ' ' || destination FROM delivered_event", String.class);

@@ -43,7 +43,7 @@ Levanta la aplicación con un PostgreSQL temporal en un contenedor, en el puerto
 
 ## API
 
-Cada petición identifica al tendero con las cabeceras `X-Tenant-Id` y `X-Customer-Id`. `X-Correlation-Id` es opcional. Si no llega o no es válido se genera uno, y siempre vuelve en la respuesta.
+Las cotizaciones y las órdenes identifican al tendero con las cabeceras `X-Tenant-Id` y `X-Customer-Id`. `X-Correlation-Id` es opcional. Si no llega o no es válido se genera uno, y siempre vuelve en la respuesta.
 
 Las semillas traen tenderos para probar los dos métodos de pago. En `CO-MARCA-A`, `CLI-CONTADO` no tiene cupo, `CLI-CREDITO-ALTO` tiene cupo con `DIST-NORTE` y `CLI-CREDITO-BAJO` con `DIST-NORTE` y `DIST-SUR`. En `EC-MARCA-A`, `CLI-EC-01` tiene cupo con `DIST-EC-01`.
 
@@ -93,9 +93,9 @@ curl -i 'http://localhost:8080/v1/orders?page=0&size=20' \
 Los errores usan `application/problem+json` con un `code` estable y el `correlationId`:
 
 - 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad o la `Idempotency-Key`, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte), falta un campo obligatorio o la paginación está fuera de rango.
-- 404 si el tenant, el tendero, la cotización, la orden o la ruta no existen.
+- 404 si el tenant, el tendero, la cotización, la orden, el evento o la ruta no existen.
 - 405 si la ruta no admite el método y 415 si el cuerpo no es `application/json`.
-- 409 si la cotización venció (con `expiresAt`) o ya se confirmó (con su `orderId`).
+- 409 si la cotización venció (con `expiresAt`) o ya se confirmó (con su `orderId`), o si el evento que se reencola no está fallido (con `eventStatus`).
 - 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor. También al confirmar a crédito si el cupo ya no alcanza (con `available` y `required`) o si la cuenta dejó de existir, y cuando la `Idempotency-Key` ya se usó con otro cuerpo.
 
 Los errores de forma y los del carrito traen `errors[]` con la posición del ítem, el campo, el SKU recibido y el código. El carrito informa todos sus errores juntos.
@@ -142,10 +142,17 @@ Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit
 
 Un proceso de la aplicación (`OutboxRelay`) revisa cada segundo los eventos pendientes y entrega cada uno en su propia transacción, con su fila bloqueada. Si se levantan varias instancias, cada una salta los eventos que otra tiene tomados.
 
-- **La entrega es al menos una vez.** El ERP recibe el `eventId` como clave de idempotencia y descarta un segundo envío. La notificación lleva el `orderId` como clave de agrupación, así que el dispositivo junta las repetidas.
+- **La entrega es al menos una vez.** Si el proceso cae después de entregar y antes de marcar el evento como enviado, el evento vuelve a salir con el mismo `eventId`. El ERP lo usa como clave de idempotencia y descarta el segundo envío.
+- **Una notificación entregada no se vuelve a enviar.** Cada entrega se registra en una transacción propia, que se confirma aunque la del evento se pierda, y el relay la consulta antes de enviar la notificación. Además lleva el `orderId` como clave de agrupación, así que el dispositivo junta las repetidas.
 - **Si el destino falla, el evento se reintenta** con una espera que empieza en un segundo, se duplica con cada fallo hasta 15 minutos y suma hasta un 20 % al azar, para que muchos eventos no reintenten a la vez. Cualquier error del entregador cuenta como un intento.
 - **Cada destino tiene su ventana.** El ERP se reintenta durante 72 horas y después el evento queda fallido. La notificación solo sirve si llega pronto, así que pasada una hora se descarta, aunque el proveedor esté disponible.
 - **El ERP va antes que la notificación** cuando los dos están pendientes, porque los ids de evento son crecientes y el relay desempata por id.
+
+Un evento fallido se vuelve a encolar con su `eventId`, que aparece en el log del fallo. Queda pendiente, sin intentos y con 72 horas nuevas desde ese momento. Es una operación de soporte, así que no lleva cabeceras de identidad ni filtra por tenant. Responde 202, 404 si el evento no existe y 409 si no está fallido, con su estado en `eventStatus`. Una notificación descartada no se reencola, porque ya llegaría tarde.
+
+```bash
+curl -i -X POST http://localhost:8080/v1/admin/outbox/{eventId}/retry
+```
 
 ## Modelo de consistencia
 
@@ -169,5 +176,4 @@ Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: 
 
 ## Pendientes y por qué
 
-- **Reencolar eventos fallidos.** Un evento del ERP que agotó su ventana queda fallido, y todavía no hay una operación para volver a encolarlo.
 - **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.

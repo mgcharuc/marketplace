@@ -10,6 +10,8 @@ import com.marketplace.domain.money.Money;
 import com.marketplace.domain.order.IdempotencyKeyReusedException;
 import com.marketplace.domain.order.OrderNotFoundException;
 import com.marketplace.domain.order.QuoteAlreadyConfirmedException;
+import com.marketplace.domain.outbox.EventNotFailedException;
+import com.marketplace.domain.outbox.EventNotFoundException;
 import com.marketplace.domain.quote.CartError;
 import com.marketplace.domain.quote.InvalidCartException;
 import com.marketplace.domain.quote.QuoteExpiredException;
@@ -78,7 +80,8 @@ class ApiExceptionHandler {
         TenantNotFoundException.class,
         CustomerNotFoundException.class,
         QuoteNotFoundException.class,
-        OrderNotFoundException.class
+        OrderNotFoundException.class,
+        EventNotFoundException.class
     })
     ResponseEntity<ProblemDetail> notFound(DomainException exception) {
         return rejected(HttpStatus.NOT_FOUND, exception, Map.of());
@@ -95,6 +98,12 @@ class ApiExceptionHandler {
     @ExceptionHandler(QuoteAlreadyConfirmedException.class)
     ResponseEntity<ProblemDetail> quoteAlreadyConfirmed(QuoteAlreadyConfirmedException exception) {
         return rejected(HttpStatus.CONFLICT, exception, Map.of("orderId", exception.orderId()));
+    }
+
+    @ExceptionHandler(EventNotFailedException.class)
+    ResponseEntity<ProblemDetail> eventNotFailed(EventNotFailedException exception) {
+        return rejected(
+                HttpStatus.CONFLICT, exception, Map.of("eventStatus", exception.status().name()));
     }
 
     @ExceptionHandler({

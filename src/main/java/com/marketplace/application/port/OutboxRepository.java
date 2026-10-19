@@ -20,4 +20,10 @@ public interface OutboxRepository {
     void markFailed(UUID id, int attempts, String error);
 
     void markDiscarded(UUID id, int attempts, String error);
+
+    /**
+     * Deja pendiente un evento fallido, sin intentos y con la ventana desde {@code now}. Un evento
+     * en otro estado no cambia.
+     */
+    RequeueResult requeue(UUID id, Instant now);
 }

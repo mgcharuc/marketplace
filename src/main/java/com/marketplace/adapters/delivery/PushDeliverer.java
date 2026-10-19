@@ -27,6 +27,9 @@ public class PushDeliverer implements EventDeliverer {
 
     @Override
     public void deliver(OutboxEvent event) throws DeliveryException {
+        if (deliveries.exists(event.id(), Destination.PUSH)) {
+            return;
+        }
         push.send(event.payload(), event.aggregateId());
         deliveries.record(event.id(), Destination.PUSH, time.now());
     }

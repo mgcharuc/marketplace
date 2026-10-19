@@ -45,4 +45,17 @@ interface OutboxEventEntityRepository extends JpaRepository<OutboxEventEntity, U
             WHERE e.id = :id
             """)
     int close(UUID id, String status, int attempts, String error);
+
+    @Modifying
+    @Query(
+            """
+            UPDATE OutboxEventEntity e
+            SET e.status = 'PENDING', e.attempts = 0, e.nextAttemptAt = :now,
+                e.retryWindowStart = :now
+            WHERE e.id = :id
+            """)
+    int requeue(UUID id, Instant now);
+
+    @Query(nativeQuery = true, value = "SELECT status FROM outbox_event WHERE id = :id FOR UPDATE")
+    Optional<String> lockStatus(UUID id);
 }
