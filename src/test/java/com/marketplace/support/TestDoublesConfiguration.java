@@ -1,6 +1,8 @@
 package com.marketplace.support;
 
+import com.marketplace.application.port.Outbox;
 import com.marketplace.application.seed.LoadSeeds;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -22,11 +24,18 @@ public class TestDoublesConfiguration {
     }
 
     @Bean
+    @Primary
+    FailingOutbox failingOutbox(@Qualifier("jpaOutbox") Outbox outbox) {
+        return new FailingOutbox(outbox);
+    }
+
+    @Bean
     DatabaseCleaner databaseCleaner(
             JdbcTemplate jdbc,
             LoadSeeds loadSeeds,
             FixedTimeSource time,
-            SequentialIdGenerator ids) {
-        return new DatabaseCleaner(jdbc, loadSeeds, time, ids);
+            SequentialIdGenerator ids,
+            FailingOutbox outbox) {
+        return new DatabaseCleaner(jdbc, loadSeeds, time, ids, outbox);
     }
 }

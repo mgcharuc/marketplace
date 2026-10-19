@@ -110,6 +110,19 @@ class TenantTest {
     }
 
     @Test
+    @DisplayName(
+            "El número de orden rellena la secuencia con ceros hasta ocho dígitos y no la trunca")
+    void formatsOrderNumber() {
+        var tenant = tenant("CO-MARCA-A", "CO-A");
+
+        assertThat(tenant.orderNumber(1)).isEqualTo("CO-A-00000001");
+        assertThat(tenant.orderNumber(99_999_999)).isEqualTo("CO-A-99999999");
+        assertThat(tenant.orderNumber(123_456_789)).isEqualTo("CO-A-123456789");
+        assertThatThrownBy(() -> tenant.orderNumber(0))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("Rechaza una marca vacía o un país nulo")
     void rejectsMissingBrandOrCountry() {
         assertThatThrownBy(

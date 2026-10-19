@@ -12,4 +12,4 @@ spring:
     locations: classpath:db/migration
 logging:
   pattern:
-    correlation: "[%X{correlationId:-} %X{tenantId:-} %X{customerId:-} %X{distributorId:-}] "
+    correlation: "[%X{correlationId:-} %X{tenantId:-} %X{customerId:-} %X{distributorId:-} %X{orderId:-}] "

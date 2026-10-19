@@ -47,6 +47,17 @@ public record Tenant(
                                                 + country.code()));
     }
 
+    /**
+     * Número de orden con el prefijo del tenant y la secuencia rellena con ceros hasta ocho
+     * dígitos. Una secuencia más larga se escribe completa.
+     */
+    public String orderNumber(long sequence) {
+        if (sequence < 1) {
+            throw new IllegalArgumentException("Secuencia de orden menor que 1: " + sequence);
+        }
+        return "%s-%08d".formatted(orderNumberPrefix, sequence);
+    }
+
     private static void requirePositive(Duration ttl, String field) {
         Objects.requireNonNull(ttl, field);
         if (ttl.isZero() || ttl.isNegative()) {

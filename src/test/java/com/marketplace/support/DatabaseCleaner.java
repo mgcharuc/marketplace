@@ -17,16 +17,19 @@ public class DatabaseCleaner {
     private final LoadSeeds loadSeeds;
     private final FixedTimeSource time;
     private final SequentialIdGenerator ids;
+    private final FailingOutbox outbox;
 
     DatabaseCleaner(
             JdbcTemplate jdbc,
             LoadSeeds loadSeeds,
             FixedTimeSource time,
-            SequentialIdGenerator ids) {
+            SequentialIdGenerator ids,
+            FailingOutbox outbox) {
         this.jdbc = jdbc;
         this.loadSeeds = loadSeeds;
         this.time = time;
         this.ids = ids;
+        this.outbox = outbox;
     }
 
     public void clean() {
@@ -34,6 +37,7 @@ public class DatabaseCleaner {
         jdbc.execute("TRUNCATE " + String.join(", ", tables) + " RESTART IDENTITY CASCADE");
         time.reset();
         ids.reset();
+        outbox.reset();
         loadSeeds.handle();
     }
 }

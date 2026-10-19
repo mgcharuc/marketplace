@@ -277,7 +277,7 @@ class ConfigValidatorTest {
     }
 
     @Test
-    @DisplayName("Rechaza precios de lista negativos o con más decimales que la moneda del país")
+    @DisplayName("Rechaza precios de lista en cero, negativos o con más decimales que la moneda")
     void rejectsInvalidListPrices() {
         var products = new ArrayList<>(coMarcaAProducts());
         products.add(product("AGUA-NEG", "AGUAS", "IVA19", "-1"));
@@ -287,7 +287,8 @@ class ConfigValidatorTest {
         assertThat(violationsOf(coMarcaAWith(products, coMarcaARules())))
                 .containsExactly(
                         violation("PRICE_INVALID_SCALE", "AGUA-NEG"),
-                        violation("PRICE_INVALID_SCALE", "AGUA-DEC"));
+                        violation("PRICE_INVALID_SCALE", "AGUA-DEC"),
+                        violation("PRICE_INVALID_SCALE", "AGUA-CERO"));
     }
 
     @Test

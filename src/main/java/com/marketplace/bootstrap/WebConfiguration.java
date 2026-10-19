@@ -1,5 +1,6 @@
 package com.marketplace.bootstrap;
 
+import com.marketplace.adapters.web.IdempotencyKeyInterceptor;
 import com.marketplace.adapters.web.IdentityInterceptor;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,7 @@ class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new IdentityInterceptor()).addPathPatterns("/v1/**");
+        registry.addInterceptor(new IdempotencyKeyInterceptor()).addPathPatterns("/v1/orders");
     }
 
     // El cuerpo se lee sin convertir tipos: "3" no es un entero ni 123 es un texto.

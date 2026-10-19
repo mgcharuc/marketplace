@@ -5,12 +5,19 @@ import com.marketplace.domain.config.CustomerNotFoundException;
 import com.marketplace.domain.config.DistributorNotFoundException;
 import com.marketplace.domain.config.TenantNotFoundException;
 import com.marketplace.domain.credit.CreditAccountNotFoundException;
+import com.marketplace.domain.credit.CreditLimitExceededException;
+import com.marketplace.domain.money.Money;
+import com.marketplace.domain.order.OrderNotFoundException;
+import com.marketplace.domain.order.QuoteAlreadyConfirmedException;
 import com.marketplace.domain.quote.CartError;
 import com.marketplace.domain.quote.InvalidCartException;
+import com.marketplace.domain.quote.QuoteExpiredException;
 import com.marketplace.domain.quote.QuoteNotFoundException;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -37,7 +44,16 @@ class ApiExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "IDENTITY_HEADERS_REQUIRED",
                 "Faltan las cabeceras de identidad o tienen un formato inválido.",
-                exception.errors());
+                Map.of("errors", exception.errors()));
+    }
+
+    @ExceptionHandler(IdempotencyKeyException.class)
+    ResponseEntity<ProblemDetail> idempotencyKey() {
+        return rejected(
+                HttpStatus.BAD_REQUEST,
+                "IDEMPOTENCY_KEY_REQUIRED",
+                "Falta la cabecera Idempotency-Key o tiene un formato inválido.",
+                Map.of());
     }
 
     @ExceptionHandler(InvalidRequestException.class)
@@ -54,28 +70,48 @@ class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> invalidCart(InvalidCartException exception) {
         List<ApiError> errors =
                 exception.errors().stream().map(ApiExceptionHandler::apiError).toList();
-        return rejected(
-                HttpStatus.UNPROCESSABLE_CONTENT, exception.code(), exception.getMessage(), errors);
+        return rejected(HttpStatus.UNPROCESSABLE_CONTENT, exception, Map.of("errors", errors));
     }
 
     @ExceptionHandler({
         TenantNotFoundException.class,
         CustomerNotFoundException.class,
-        QuoteNotFoundException.class
+        QuoteNotFoundException.class,
+        OrderNotFoundException.class
     })
     ResponseEntity<ProblemDetail> notFound(DomainException exception) {
-        return rejected(HttpStatus.NOT_FOUND, exception.code(), exception.getMessage(), null);
+        return rejected(HttpStatus.NOT_FOUND, exception, Map.of());
+    }
+
+    @ExceptionHandler(QuoteExpiredException.class)
+    ResponseEntity<ProblemDetail> quoteExpired(QuoteExpiredException exception) {
+        return rejected(
+                HttpStatus.CONFLICT,
+                exception,
+                Map.of("expiresAt", exception.expiresAt().toString()));
+    }
+
+    @ExceptionHandler(QuoteAlreadyConfirmedException.class)
+    ResponseEntity<ProblemDetail> quoteAlreadyConfirmed(QuoteAlreadyConfirmedException exception) {
+        return rejected(HttpStatus.CONFLICT, exception, Map.of("orderId", exception.orderId()));
     }
 
     @ExceptionHandler({DistributorNotFoundException.class, CreditAccountNotFoundException.class})
     ResponseEntity<ProblemDetail> unprocessable(DomainException exception) {
-        return rejected(
-                HttpStatus.UNPROCESSABLE_CONTENT, exception.code(), exception.getMessage(), null);
+        return rejected(HttpStatus.UNPROCESSABLE_CONTENT, exception, Map.of());
+    }
+
+    @ExceptionHandler(CreditLimitExceededException.class)
+    ResponseEntity<ProblemDetail> creditLimitExceeded(CreditLimitExceededException exception) {
+        var extensions = new LinkedHashMap<String, Object>();
+        extensions.put("available", amount(exception.available()));
+        extensions.put("required", amount(exception.required()));
+        return rejected(HttpStatus.UNPROCESSABLE_CONTENT, exception, extensions);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     ResponseEntity<ProblemDetail> routeNotFound() {
-        return rejected(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", "La ruta no existe.", null);
+        return rejected(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", "La ruta no existe.", Map.of());
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
@@ -84,7 +120,7 @@ class ApiExceptionHandler {
                 HttpStatus.METHOD_NOT_ALLOWED,
                 "METHOD_NOT_ALLOWED",
                 "La ruta no admite ese método.",
-                null);
+                Map.of());
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
@@ -93,7 +129,7 @@ class ApiExceptionHandler {
                 HttpStatus.UNSUPPORTED_MEDIA_TYPE,
                 "UNSUPPORTED_MEDIA_TYPE",
                 "El cuerpo debe enviarse como application/json.",
-                null);
+                Map.of());
     }
 
     @ExceptionHandler(Exception.class)
@@ -103,29 +139,35 @@ class ApiExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",
                 "Ocurrió un error inesperado.",
-                null);
+                Map.of());
     }
 
     private ResponseEntity<ProblemDetail> invalidRequest(List<ApiError> errors) {
         return rejected(
-                HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "La petición no es válida.", errors);
+                HttpStatus.BAD_REQUEST,
+                "INVALID_REQUEST",
+                "La petición no es válida.",
+                Map.of("errors", errors));
     }
 
     private ResponseEntity<ProblemDetail> rejected(
-            HttpStatus status, String code, String detail, List<ApiError> errors) {
+            HttpStatus status, DomainException exception, Map<String, ?> extensions) {
+        return rejected(status, exception.code(), exception.getMessage(), extensions);
+    }
+
+    private ResponseEntity<ProblemDetail> rejected(
+            HttpStatus status, String code, String detail, Map<String, ?> extensions) {
         log.warn("Petición rechazada con {}", code);
-        return problem(status, code, detail, errors);
+        return problem(status, code, detail, extensions);
     }
 
     private static ResponseEntity<ProblemDetail> problem(
-            HttpStatus status, String code, String detail, List<ApiError> errors) {
+            HttpStatus status, String code, String detail, Map<String, ?> extensions) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create(TYPE_PREFIX + code.toLowerCase(Locale.ROOT).replace('_', '-')));
         problem.setTitle(title(code));
         problem.setProperty("code", code);
-        if (errors != null) {
-            problem.setProperty("errors", errors);
-        }
+        extensions.forEach(problem::setProperty);
         problem.setProperty("correlationId", MDC.get(CorrelationIdFilter.MDC_KEY));
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -135,6 +177,10 @@ class ApiExceptionHandler {
     private static String title(String code) {
         String words = code.toLowerCase(Locale.ROOT).replace('_', ' ');
         return Character.toUpperCase(words.charAt(0)) + words.substring(1);
+    }
+
+    private static String amount(Money money) {
+        return money.amount().toPlainString();
     }
 
     private static ApiError apiError(CartError error) {

@@ -173,7 +173,7 @@ public class ConfigValidator {
         version.products().stream()
                 .filter(
                         product ->
-                                product.listPrice().signum() < 0
+                                product.listPrice().signum() <= 0
                                         || product.listPrice().scale() > scale)
                 .forEach(
                         product ->

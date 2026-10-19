@@ -65,12 +65,29 @@ curl -i http://localhost:8080/v1/quotes/{quoteId} \
 
 Los SKU repetidos se suman en una sola línea. A crédito, `credit` informa el cupo disponible del tendero con ese distribuidor, el total requerido y cuánto falta, sin reservar nada.
 
+Confirmar una cotización vigente:
+
+```bash
+curl -i http://localhost:8080/v1/orders \
+  -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO' -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: pedido-001' \
+  -d '{"quoteId": "{quoteId}"}'
+```
+
+Responde 201 con la orden, su número (`CO-A-00000001`) y `Location: /v1/orders/{orderId}`. La orden copia el desglose guardado en la cotización sin recalcularlo, así que el total es el cotizado aunque después cambien los precios, las reglas o las tasas. A crédito, `credit` informa el cupo consumido y el que queda con ese distribuidor. La cabecera `Idempotency-Key` es obligatoria, con 1 a 128 caracteres ASCII visibles. Consultar la orden devuelve el mismo cuerpo del 201, byte a byte, y solo la ve el tendero que la confirmó.
+
+```bash
+curl -i http://localhost:8080/v1/orders/{orderId} \
+  -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO'
+```
+
 Los errores usan `application/problem+json` con un `code` estable y el `correlationId`:
 
-- 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte) o falta un campo obligatorio.
-- 404 si el tenant, el tendero, la cotización o la ruta no existen.
+- 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad o la `Idempotency-Key`, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte) o falta un campo obligatorio.
+- 404 si el tenant, el tendero, la cotización, la orden o la ruta no existen.
 - 405 si la ruta no admite el método y 415 si el cuerpo no es `application/json`.
-- 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor.
+- 409 si la cotización venció (con `expiresAt`) o ya se confirmó (con su `orderId`).
+- 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor. También al confirmar a crédito si el cupo ya no alcanza (con `available` y `required`) o si la cuenta dejó de existir.
 
 Los errores de forma y los del carrito traen `errors[]` con la posición del ítem, el campo, el SKU recibido y el código. El carrito informa todos sus errores juntos.
 
@@ -82,7 +99,7 @@ Ningún valor de moneda, escala, redondeo ni tasa está escrito en el código. L
 - **Tenant** (país y marca): prefijo del número de orden y tiempos de vigencia de la cotización y de la clave de idempotencia. Toma la configuración fiscal y monetaria de su país.
 - **Versión comercial del tenant**: productos con su precio de lista y su clase tributaria, reglas de combo, escala y obsequio, y el orden de las etapas. Las versiones se numeran de forma consecutiva y una versión publicada no se modifica.
 
-Antes de publicar una versión se valida completa: un pipeline con los impuestos después de las etapas comerciales, el crédito al final y sin etapas repetidas ni faltantes, tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
+Antes de publicar una versión se valida completa: un pipeline con los impuestos después de las etapas comerciales, el crédito al final y sin etapas repetidas ni faltantes, tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios de lista mayores que cero y en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
 
 Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
 
@@ -100,6 +117,17 @@ El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión
 - **El crédito va al final**, porque compara el total con impuestos con el cupo disponible del tendero con ese distribuidor. Informa si el pedido cabe y cuánto falta, sin reservar cupo. En una compra de contado `credit` es `null`.
 - Las etapas comerciales (combo, escala y obsequio) se pueden reordenar u omitir en una versión, y una etapa omitida no se aplica. Los impuestos siempre van después de ellas y el crédito al final. Una versión que no lo cumple no se publica. Si hay un obsequio por monto, además debe ir después de los descuentos.
 
+## Confirmación
+
+Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit no queda orden, consumo de cupo ni eventos, y la respuesta es un error. El 201 sale después del commit, así que una orden respondida ya se puede consultar.
+
+- **La cotización se bloquea primero.** Dos confirmaciones de la misma cotización se ordenan en ese bloqueo, y la segunda encuentra la orden de la primera y responde 409 con su `orderId`. La restricción única sobre `quote_id` es una segunda barrera y da la misma respuesta.
+- **Una cotización ya confirmada responde con su orden antes de mirar el vencimiento.** Quien reintenta tarde recibe la orden que ya tiene y no un aviso de cotización vencida.
+- **La cotización vence en `expiresAt` exacto.** Se puede confirmar hasta el segundo anterior. El tiempo de vigencia acota cuánto se respeta un precio anterior.
+- **El cupo se descuenta con un `UPDATE` condicional** (`available >= total`) en lugar de leer la cuenta, restar y guardarla. Dos órdenes que caben por separado pero no juntas, confirmadas a la vez, nunca dejan el cupo negativo. Que la cotización dijera que cabía no garantiza la confirmación, porque el cupo pudo consumirse mientras tanto. Cada consumo queda como un movimiento ligado a la orden.
+- **El número de orden sale de una secuencia de PostgreSQL** que no bloquea. Como se toma después de las validaciones, un rechazo no gasta número. Solo un fallo posterior, antes del commit, deja un hueco, y eso está permitido porque no es una numeración fiscal.
+- **Los avisos al ERP y al tendero se guardan en la misma transacción** que la orden, en una tabla de eventos pendientes. Así no quedan avisos de órdenes que no existen ni órdenes sin aviso, y ningún sistema externo se llama antes del commit.
+
 ## Política de redondeo
 
 Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio, en el motor de precios o en el código que lee y escribe JSON, si el dominio o el motor convierten un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio y el motor no dependan de ningún framework.
@@ -116,4 +144,6 @@ Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: 
 
 ## Pendientes y por qué
 
+- **Reintento con la misma clave.** La confirmación exige `Idempotency-Key` y valida su formato, pero todavía no guarda la respuesta para repetirla. Un reintento de una orden ya confirmada no la duplica, pero responde 409 con su `orderId` en lugar del 201 original.
+- **Entrega de los avisos.** Los avisos al ERP y al tendero se guardan como pendientes, pero todavía no hay un proceso que los entregue.
 - **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.

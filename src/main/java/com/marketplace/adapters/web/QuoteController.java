@@ -6,7 +6,6 @@ import com.marketplace.domain.quote.Quote;
 import com.marketplace.domain.quote.QuoteKey;
 import com.marketplace.domain.quote.QuoteNotFoundException;
 import java.net.URI;
-import java.util.regex.Pattern;
 import org.slf4j.MDC;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/quotes")
 class QuoteController {
-
-    private static final Pattern QUOTE_ID = Pattern.compile("q_[0-9A-HJKMNP-TV-Z]{26}");
 
     private final QuoteCart quoteCart;
     private final GetQuote getQuote;
@@ -51,7 +48,7 @@ class QuoteController {
             @RequestAttribute(RequestIdentity.ATTRIBUTE) RequestIdentity identity,
             @PathVariable String quoteId) {
         String id = quoteId.trim();
-        if (!QUOTE_ID.matcher(id).matches()) {
+        if (!IdFormat.isQuoteId(id)) {
             throw new QuoteNotFoundException();
         }
         Quote quote = getQuote.handle(new QuoteKey(identity.tenantId(), identity.customerId(), id));
