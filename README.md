@@ -41,7 +41,7 @@ EOF
 ./mvnw spring-boot:test-run
 ```
 
-Levanta la aplicación con un PostgreSQL temporal en un contenedor, en el puerto 8080.
+Levanta la aplicación con un PostgreSQL temporal en un contenedor, en el puerto 8080. La documentación de la API queda en http://localhost:8080/swagger-ui.html, y la raíz del puerto lleva ahí. Cada operación se puede probar con sus cabeceras.
 
 ## API
 

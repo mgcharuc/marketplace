@@ -5,6 +5,10 @@ import com.marketplace.application.quote.QuoteCart;
 import com.marketplace.domain.quote.Quote;
 import com.marketplace.domain.quote.QuoteKey;
 import com.marketplace.domain.quote.QuoteNotFoundException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import org.slf4j.MDC;
 import org.springframework.http.MediaType;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/v1/quotes")
+@Tag(name = "Cotizaciones")
 class QuoteController {
 
     private final QuoteCart quoteCart;
@@ -31,6 +36,16 @@ class QuoteController {
         this.validator = validator;
     }
 
+    @Operation(summary = "Cotiza un carrito y guarda el desglose")
+    @ApiResponse(
+            responseCode = "201",
+            description = "Cotización creada",
+            headers = @Header(name = "Location", description = "/v1/quotes/{quoteId}"))
+    @ApiResponse(responseCode = "400", description = "Cabeceras o cuerpo con forma inválida")
+    @ApiResponse(responseCode = "404", description = "El tenant o el tendero no existen")
+    @ApiResponse(
+            responseCode = "422",
+            description = "Carrito inválido, distribuidor de otro tenant o sin cuenta de crédito")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<String> quote(
             @RequestAttribute(RequestIdentity.ATTRIBUTE) RequestIdentity identity,
@@ -43,6 +58,12 @@ class QuoteController {
                 .body(quote.snapshot());
     }
 
+    @Operation(summary = "Devuelve una cotización tal como se respondió al crearla")
+    @ApiResponse(responseCode = "200", description = "Cotización")
+    @ApiResponse(responseCode = "400", description = "Cabeceras inválidas")
+    @ApiResponse(
+            responseCode = "404",
+            description = "El tenant, el tendero o la cotización no existen, o es de otro tendero")
     @GetMapping("/{quoteId}")
     ResponseEntity<String> get(
             @RequestAttribute(RequestIdentity.ATTRIBUTE) RequestIdentity identity,

@@ -14,6 +14,9 @@ marketplace:
   relay:
     scheduler:
       enabled: true
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
 logging:
   pattern:
     correlation: "[%X{correlationId:-} %X{tenantId:-} %X{customerId:-} %X{distributorId:-} %X{orderId:-}] "

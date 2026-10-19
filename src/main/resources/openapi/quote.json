@@ -1,0 +1,163 @@
+{
+  "quoteId": "q_01M5ASQ82195EEW6JH18Y4ZD31",
+  "tenantId": "CO-MARCA-A",
+  "customerId": "CLI-CONTADO",
+  "distributorId": "DIST-NORTE",
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "paymentMethod": "CASH",
+  "createdAt": "2026-10-19T19:20:24Z",
+  "expiresAt": "2026-10-19T19:35:24Z",
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 25,
+      "unitPrice": "2000",
+      "grossAmount": "50000",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-GAS350",
+          "amount": "2200"
+        }
+      ],
+      "taxBaseAllocations": [],
+      "taxableBase": "47800",
+      "taxRate": "0.19",
+      "taxAmount": "9082",
+      "netAmount": "56882"
+    },
+    {
+      "lineId": "L2",
+      "sku": "GASEOSA-1500",
+      "name": "Gaseosa Cola 1,5 L",
+      "quantity": 2,
+      "unitPrice": "5000",
+      "grossAmount": "10000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "909"
+        }
+      ],
+      "taxableBase": "9091",
+      "taxRate": "0.19",
+      "taxAmount": "1727",
+      "netAmount": "10818"
+    },
+    {
+      "lineId": "L3",
+      "sku": "SNACK-PAPAS",
+      "name": "Papas fritas 150 g",
+      "quantity": 3,
+      "unitPrice": "1800",
+      "grossAmount": "5400",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "491"
+        }
+      ],
+      "taxableBase": "4909",
+      "taxRate": "0.19",
+      "taxAmount": "933",
+      "netAmount": "5842"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "CMB-FIESTA",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-FIESTA",
+      "name": "Combo Fiesta",
+      "applications": 1,
+      "components": [
+        {
+          "sku": "GASEOSA-1500",
+          "qty": 2
+        },
+        {
+          "sku": "SNACK-PAPAS",
+          "qty": 3
+        }
+      ],
+      "listValue": "15400",
+      "comboPrice": "14000",
+      "amount": "1400",
+      "lineAmounts": [
+        {
+          "lineId": "L2",
+          "amount": "909"
+        },
+        {
+          "lineId": "L3",
+          "amount": "491"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    },
+    {
+      "ruleId": "ESC-GAS350",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-GAS350",
+      "name": "Escala Gaseosa 350",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "2200",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "2200"
+        }
+      ],
+      "mode": "MARGINAL",
+      "tiers": [
+        {
+          "fromQty": 10,
+          "percent": "5",
+          "units": 10,
+          "amount": "1000"
+        },
+        {
+          "fromQty": 20,
+          "percent": "10",
+          "units": 6,
+          "amount": "1200"
+        }
+      ]
+    }
+  ],
+  "gifts": [
+    {
+      "ruleId": "OBS-JUGO",
+      "sku": "JUGO-1L",
+      "name": "Jugo de naranja 1 L",
+      "quantity": 2,
+      "referenceUnitPrice": "4000",
+      "chargedAmount": "0",
+      "taxBase": "8000",
+      "taxRate": "0.05",
+      "taxAmount": "400",
+      "taxBorneBy": "SELLER"
+    }
+  ],
+  "totals": {
+    "grossSubtotal": "65400",
+    "discountTotal": "3600",
+    "netSubtotal": "61800",
+    "taxableBase": "61800",
+    "taxTotal": "11742",
+    "total": "73542"
+  },
+  "credit": null
+}

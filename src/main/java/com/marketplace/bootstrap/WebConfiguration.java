@@ -6,6 +6,7 @@ import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomize
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
@@ -19,9 +20,14 @@ class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new IdentityInterceptor())
-                .addPathPatterns("/v1/**")
-                .excludePathPatterns("/v1/admin/**");
-        registry.addInterceptor(new IdempotencyKeyInterceptor()).addPathPatterns("/v1/orders");
+                .addPathPatterns(ApiPaths.API + "**")
+                .excludePathPatterns(ApiPaths.SUPPORT + "**");
+        registry.addInterceptor(new IdempotencyKeyInterceptor()).addPathPatterns(ApiPaths.ORDERS);
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addRedirectViewController("/", "/swagger-ui.html");
     }
 
     // El cuerpo se lee sin convertir tipos: "3" no es un entero ni 123 es un texto.
