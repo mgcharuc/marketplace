@@ -1,5 +1,7 @@
 # Marketplace B2B: motor de pedidos
 
+[![verify](https://github.com/mgcharuc/marketplace/actions/workflows/verify.yml/badge.svg)](https://github.com/mgcharuc/marketplace/actions/workflows/verify.yml)
+
 API para cotizar y confirmar pedidos de tenderos a distribuidores de bebidas, en varios países y marcas.
 
 Las decisiones de diseño y las alternativas descartadas están en [ADR.md](ADR.md).
