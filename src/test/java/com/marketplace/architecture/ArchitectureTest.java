@@ -7,6 +7,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noCodeUnits;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -27,6 +28,8 @@ class ArchitectureTest {
 
     private static final String DOMAIN = "com.marketplace.domain..";
     private static final String PRICING = "com.marketplace.pricing..";
+    private static final String APPLICATION = "com.marketplace.application..";
+    private static final String BOOTSTRAP = "com.marketplace.bootstrap..";
     private static final String[] MONEY_PACKAGES = {
         DOMAIN,
         PRICING,
@@ -83,6 +86,34 @@ class ArchitectureTest {
                     .resideInAnyPackage(PRICING, DOMAIN, "java..")
                     .allowEmptyShould(true)
                     .because("el motor de precios es Java puro y solo conoce el dominio");
+
+    @ArchTest
+    static final ArchRule applicationDependsOnlyOnInnerLayers =
+            classes()
+                    .that()
+                    .resideInAPackage(APPLICATION)
+                    .should()
+                    .onlyDependOnClassesThat()
+                    .resideInAnyPackage(APPLICATION, DOMAIN, PRICING, "java..", "org.slf4j..")
+                    .because(
+                            "los casos de uso y los puertos solo usan el dominio, el motor, el JDK y SLF4J");
+
+    @ArchTest
+    static final ArchRule adaptersDoNotDependOnEachOther =
+            slices().matching("com.marketplace.adapters.(*)..")
+                    .should()
+                    .notDependOnEachOther()
+                    .because("cada adaptador habla con los demás a través de los puertos");
+
+    @ArchTest
+    static final ArchRule onlyBootstrapKnowsBootstrap =
+            noClasses()
+                    .that()
+                    .resideOutsideOfPackage(BOOTSTRAP)
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage(BOOTSTRAP)
+                    .because("bootstrap solo registra los beans de la aplicación");
 
     @ArchTest
     static final ArchRule noFloatingPointFields =
