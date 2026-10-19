@@ -1,11 +1,11 @@
 package com.marketplace.adapters.web;
 
 import com.marketplace.application.order.ConfirmOrder;
+import com.marketplace.application.order.ConfirmOrderCommand;
 import com.marketplace.application.order.GetOrder;
-import com.marketplace.domain.order.Order;
+import com.marketplace.application.order.OrderConfirmation;
 import com.marketplace.domain.order.OrderKey;
 import com.marketplace.domain.order.OrderNotFoundException;
-import com.marketplace.domain.quote.QuoteKey;
 import java.net.URI;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/orders")
 class OrderController {
 
+    private static final String REPLAYED_HEADER = "Idempotent-Replayed";
+
     private final ConfirmOrder confirmOrder;
     private final GetOrder getOrder;
     private final RequestValidator validator;
@@ -34,14 +36,24 @@ class OrderController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<String> confirm(
             @RequestAttribute(RequestIdentity.ATTRIBUTE) RequestIdentity identity,
+            @RequestAttribute(IdempotencyKeyInterceptor.ATTRIBUTE) String idempotencyKey,
             @RequestBody OrderRequest request) {
         OrderRequest valid = validator.require(request.normalized());
-        Order order =
+        OrderConfirmation confirmation =
                 confirmOrder.handle(
-                        new QuoteKey(identity.tenantId(), identity.customerId(), valid.quoteId()));
-        return ResponseEntity.created(URI.create("/v1/orders/" + order.header().orderId()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(order.body());
+                        new ConfirmOrderCommand(
+                                identity.tenantId(),
+                                identity.customerId(),
+                                valid.quoteId(),
+                                idempotencyKey,
+                                RequestHash.of(valid)));
+        var response =
+                ResponseEntity.created(URI.create("/v1/orders/" + confirmation.orderId()))
+                        .contentType(MediaType.APPLICATION_JSON);
+        if (confirmation.replayed()) {
+            response.header(REPLAYED_HEADER, "true");
+        }
+        return response.body(confirmation.body());
     }
 
     @GetMapping("/{orderId}")

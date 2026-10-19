@@ -5,7 +5,6 @@ import static org.assertj.core.groups.Tuple.tuple;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,6 +17,7 @@ import com.marketplace.domain.config.TenantConfigHistory;
 import com.marketplace.support.FailingOutbox;
 import com.marketplace.support.FixedTimeSource;
 import com.marketplace.support.IntegrationTest;
+import com.marketplace.support.OrderFlow;
 import com.marketplace.support.Resources;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -389,6 +389,7 @@ class OrderApiIT {
         assertThat(count("orders")).isZero();
         assertThat(count("credit_movement")).isZero();
         assertThat(count("outbox_event")).isZero();
+        assertThat(count("idempotency_record")).isZero();
     }
 
     private String quote(
@@ -411,22 +412,11 @@ class OrderApiIT {
             String sku,
             int quantity)
             throws Exception {
-        var root = mapper.createObjectNode();
-        root.put("distributorId", distributorId);
-        root.put("paymentMethod", method);
-        root.putArray("items").addObject().put("sku", sku).put("quantity", quantity);
-        return mvc.perform(
-                        post("/v1/quotes")
-                                .header("X-Tenant-Id", tenantId)
-                                .header("X-Customer-Id", customerId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(mapper.writeValueAsString(root)))
-                .andExpect(status().isCreated());
+        return flow().quote(tenantId, customerId, distributorId, method, sku, quantity);
     }
 
     private String quoteId(ResultActions quote) throws Exception {
-        String body = quote.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        return mapper.readTree(body).get("quoteId").asString();
+        return flow().quoteId(quote);
     }
 
     private String getQuoteBody(String customerId, String quoteId) throws Exception {
@@ -441,13 +431,11 @@ class OrderApiIT {
 
     private ResultActions confirm(String tenantId, String customerId, String key, String quoteId)
             throws Exception {
-        return mvc.perform(
-                post("/v1/orders")
-                        .header("X-Tenant-Id", tenantId)
-                        .header("X-Customer-Id", customerId)
-                        .header("Idempotency-Key", key)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"quoteId\": \"" + quoteId + "\"}"));
+        return flow().confirm(tenantId, customerId, key, quoteId);
+    }
+
+    private OrderFlow flow() {
+        return new OrderFlow(mvc);
     }
 
     private ResultActions getOrder(String tenantId, String customerId, String orderId)

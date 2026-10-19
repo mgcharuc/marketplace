@@ -4,6 +4,7 @@ import com.marketplace.application.CustomerAccess;
 import com.marketplace.application.port.CreditRepository;
 import com.marketplace.application.port.EventPayloadRenderer;
 import com.marketplace.application.port.IdGenerator;
+import com.marketplace.application.port.IdempotencyStore;
 import com.marketplace.application.port.OrderRepository;
 import com.marketplace.application.port.OrderResponseRenderer;
 import com.marketplace.application.port.Outbox;
@@ -18,9 +19,12 @@ import com.marketplace.domain.credit.CreditLimitExceededException;
 import com.marketplace.domain.credit.CreditMovement;
 import com.marketplace.domain.money.Money;
 import com.marketplace.domain.order.DuplicateOrderException;
+import com.marketplace.domain.order.IdempotencyKey;
+import com.marketplace.domain.order.IdempotencyKeyReusedException;
 import com.marketplace.domain.order.Order;
 import com.marketplace.domain.order.OrderHeader;
 import com.marketplace.domain.order.QuoteAlreadyConfirmedException;
+import com.marketplace.domain.order.Reservation;
 import com.marketplace.domain.outbox.Destination;
 import com.marketplace.domain.outbox.OutboxEvent;
 import com.marketplace.domain.quote.PaymentMethod;
@@ -37,7 +41,8 @@ import org.slf4j.MDC;
 
 /**
  * Crea la orden de una cotización vigente copiando su desglose, sin recalcularlo. Una cotización se
- * confirma una sola vez, y si ya tiene orden se informa esa orden aunque haya vencido.
+ * confirma una sola vez, y si ya tiene orden se informa esa orden aunque haya vencido. Un reintento
+ * con la misma clave y el mismo cuerpo recibe la respuesta original sin crear nada.
  */
 public class ConfirmOrder {
 
@@ -47,6 +52,7 @@ public class ConfirmOrder {
     private final QuoteRepository quotes;
     private final OrderRepository orders;
     private final CreditRepository credits;
+    private final IdempotencyStore idempotency;
     private final Outbox outbox;
     private final OrderResponseRenderer renderer;
     private final EventPayloadRenderer payloads;
@@ -59,6 +65,7 @@ public class ConfirmOrder {
             QuoteRepository quotes,
             OrderRepository orders,
             CreditRepository credits,
+            IdempotencyStore idempotency,
             Outbox outbox,
             OrderResponseRenderer renderer,
             EventPayloadRenderer payloads,
@@ -69,6 +76,7 @@ public class ConfirmOrder {
         this.quotes = quotes;
         this.orders = orders;
         this.credits = credits;
+        this.idempotency = idempotency;
         this.outbox = outbox;
         this.renderer = renderer;
         this.payloads = payloads;
@@ -77,11 +85,12 @@ public class ConfirmOrder {
         this.ids = ids;
     }
 
-    public Order handle(QuoteKey key) {
+    public OrderConfirmation handle(ConfirmOrderCommand command) {
+        QuoteKey key = command.quoteKey();
         Tenant tenant = access.tenantOf(key.tenantId(), key.customerId());
-        Order order;
+        OrderConfirmation confirmation;
         try {
-            order = unitOfWork.execute(() -> confirm(tenant, key));
+            confirmation = unitOfWork.execute(() -> confirm(tenant, command));
         } catch (DuplicateOrderException duplicate) {
             String orderId =
                     unitOfWork
@@ -89,12 +98,30 @@ public class ConfirmOrder {
                             .orElseThrow(() -> duplicate);
             throw new QuoteAlreadyConfirmedException(orderId, duplicate);
         }
-        MDC.put("orderId", order.header().orderId());
-        log.info("Orden {} confirmada", order.header().orderNumber());
-        return order;
+        MDC.put("orderId", confirmation.orderId());
+        log.info(confirmation.replayed() ? "Respuesta repetida de la orden" : "Orden confirmada");
+        return confirmation;
     }
 
-    private Order confirm(Tenant tenant, QuoteKey key) {
+    private OrderConfirmation confirm(Tenant tenant, ConfirmOrderCommand command) {
+        IdempotencyKey key = command.key();
+        Instant now = time.now();
+        Reservation reservation =
+                idempotency.reserve(
+                        key, command.requestHash(), now, now.plus(tenant.idempotencyTtl()));
+        return switch (reservation) {
+            case Reservation.Replay replay ->
+                    new OrderConfirmation(replay.orderId(), replay.body(), true);
+            case Reservation.Conflict conflict -> throw new IdempotencyKeyReusedException();
+            case Reservation.Reserved reserved -> {
+                Order order = create(tenant, command.quoteKey());
+                idempotency.complete(key, order.header().orderId(), order.body());
+                yield new OrderConfirmation(order.header().orderId(), order.body(), false);
+            }
+        };
+    }
+
+    private Order create(Tenant tenant, QuoteKey key) {
         Quote quote = quotes.lock(key, tenant.currency()).orElseThrow(QuoteNotFoundException::new);
         QuoteHeader header = quote.header();
         MDC.put("distributorId", header.distributorId());

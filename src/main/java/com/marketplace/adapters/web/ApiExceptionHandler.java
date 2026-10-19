@@ -7,6 +7,7 @@ import com.marketplace.domain.config.TenantNotFoundException;
 import com.marketplace.domain.credit.CreditAccountNotFoundException;
 import com.marketplace.domain.credit.CreditLimitExceededException;
 import com.marketplace.domain.money.Money;
+import com.marketplace.domain.order.IdempotencyKeyReusedException;
 import com.marketplace.domain.order.OrderNotFoundException;
 import com.marketplace.domain.order.QuoteAlreadyConfirmedException;
 import com.marketplace.domain.quote.CartError;
@@ -96,7 +97,11 @@ class ApiExceptionHandler {
         return rejected(HttpStatus.CONFLICT, exception, Map.of("orderId", exception.orderId()));
     }
 
-    @ExceptionHandler({DistributorNotFoundException.class, CreditAccountNotFoundException.class})
+    @ExceptionHandler({
+        DistributorNotFoundException.class,
+        CreditAccountNotFoundException.class,
+        IdempotencyKeyReusedException.class
+    })
     ResponseEntity<ProblemDetail> unprocessable(DomainException exception) {
         return rejected(HttpStatus.UNPROCESSABLE_CONTENT, exception, Map.of());
     }

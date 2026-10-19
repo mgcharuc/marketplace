@@ -39,6 +39,17 @@ class OrderValidationIT {
     }
 
     @Test
+    @DisplayName("Una Idempotency-Key que llega dos veces responde 400")
+    void rejectsRepeatedIdempotencyKey() throws Exception {
+        mvc.perform(
+                        withIdentity(post("/v1/orders"))
+                                .header("Idempotency-Key", "key-1", "key-2")
+                                .content(UNKNOWN_QUOTE))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REQUIRED"));
+    }
+
+    @Test
     @DisplayName("Una Idempotency-Key de 128 caracteres visibles se acepta")
     void acceptsLongestValidKey() throws Exception {
         confirm("!~" + "k".repeat(126), UNKNOWN_QUOTE)

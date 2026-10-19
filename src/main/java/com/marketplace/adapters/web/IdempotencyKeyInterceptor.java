@@ -1,8 +1,10 @@
 package com.marketplace.adapters.web;
 
+import com.marketplace.domain.order.IdempotencyKey;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.regex.Pattern;
+import java.util.Collections;
+import java.util.List;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -10,8 +12,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 // La clave no se recorta: un espacio la vuelve inválida.
 public class IdempotencyKeyInterceptor implements HandlerInterceptor {
 
-    private static final String HEADER = "Idempotency-Key";
-    private static final Pattern FORMAT = Pattern.compile("[\\x21-\\x7E]{1,128}");
+    static final String HEADER = "Idempotency-Key";
+    static final String ATTRIBUTE = "idempotencyKey";
 
     @Override
     public boolean preHandle(
@@ -19,10 +21,11 @@ public class IdempotencyKeyInterceptor implements HandlerInterceptor {
         if (!(handler instanceof HandlerMethod) || !HttpMethod.POST.matches(request.getMethod())) {
             return true;
         }
-        String key = request.getHeader(HEADER);
-        if (key == null || !FORMAT.matcher(key).matches()) {
+        List<String> keys = Collections.list(request.getHeaders(HEADER));
+        if (keys.size() != 1 || !IdempotencyKey.isValid(keys.get(0))) {
             throw new IdempotencyKeyException();
         }
+        request.setAttribute(ATTRIBUTE, keys.get(0));
         return true;
     }
 }

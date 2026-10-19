@@ -6,6 +6,7 @@ import com.marketplace.application.order.GetOrder;
 import com.marketplace.application.port.CreditRepository;
 import com.marketplace.application.port.EventPayloadRenderer;
 import com.marketplace.application.port.IdGenerator;
+import com.marketplace.application.port.IdempotencyStore;
 import com.marketplace.application.port.OrderRepository;
 import com.marketplace.application.port.OrderResponseRenderer;
 import com.marketplace.application.port.Outbox;
@@ -24,6 +25,7 @@ class OrderConfiguration {
             QuoteRepository quotes,
             OrderRepository orders,
             CreditRepository credits,
+            IdempotencyStore idempotency,
             Outbox outbox,
             OrderResponseRenderer renderer,
             EventPayloadRenderer payloads,
@@ -31,7 +33,17 @@ class OrderConfiguration {
             TimeSource time,
             IdGenerator ids) {
         return new ConfirmOrder(
-                access, quotes, orders, credits, outbox, renderer, payloads, unitOfWork, time, ids);
+                access,
+                quotes,
+                orders,
+                credits,
+                idempotency,
+                outbox,
+                renderer,
+                payloads,
+                unitOfWork,
+                time,
+                ids);
     }
 
     @Bean

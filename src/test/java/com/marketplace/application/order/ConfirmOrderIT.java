@@ -49,7 +49,8 @@ class ConfirmOrderIT {
         QuoteKey first = quote("CLI-CREDITO-BAJO", "CREDIT", 5);
         QuoteKey second = quote("CLI-CREDITO-BAJO", "CREDIT", 5);
 
-        List<Throwable> outcomes = runTogether(confirmation(first), confirmation(second));
+        List<Throwable> outcomes =
+                runTogether(confirmation(first, "key-1"), confirmation(second, "key-2"));
 
         assertThat(outcomes).filteredOn(outcome -> outcome == null).hasSize(1);
         assertThat(outcomes)
@@ -82,7 +83,8 @@ class ConfirmOrderIT {
                                                 Latches.await(release);
                                             }));
             Latches.await(consumed);
-            Future<?> confirmation = executor.submit(() -> confirmOrder.handle(key));
+            Future<?> confirmation =
+                    executor.submit(() -> confirmOrder.handle(command(key, "key-1")));
 
             LockWaits.await(jdbc, 1);
             assertThat(confirmation).isNotDone();
@@ -104,11 +106,13 @@ class ConfirmOrderIT {
     }
 
     @Test
-    @DisplayName("Dos confirmaciones simultáneas de la misma cotización crean una sola orden")
+    @DisplayName(
+            "Dos confirmaciones simultáneas de una cotización con claves distintas crean una sola orden")
     void concurrentConfirmationsOfOneQuoteCreateOneOrder() throws Exception {
         QuoteKey key = quote("CLI-CREDITO-ALTO", "CREDIT", 5);
 
-        List<Throwable> outcomes = runTogether(confirmation(key), confirmation(key));
+        List<Throwable> outcomes =
+                runTogether(confirmation(key, "key-1"), confirmation(key, "key-2"));
 
         assertThat(outcomes).filteredOn(outcome -> outcome == null).hasSize(1);
         assertThat(outcomes)
@@ -123,6 +127,7 @@ class ConfirmOrderIT {
                                                         "SELECT id FROM orders", String.class)));
         assertThat(available("CLI-CREDITO-ALTO")).isEqualByComparingTo("971142");
         assertThat(count("credit_movement")).isOne();
+        assertThat(count("idempotency_record")).isOne();
         assertThat(count("outbox_event")).isEqualTo(2);
     }
 
@@ -146,7 +151,8 @@ class ConfirmOrderIT {
                                                 Latches.await(release);
                                             }));
             Latches.await(inserted);
-            Future<?> confirmation = executor.submit(() -> confirmOrder.handle(key));
+            Future<?> confirmation =
+                    executor.submit(() -> confirmOrder.handle(command(key, "key-1")));
 
             LockWaits.await(jdbc, 1);
             release.countDown();
@@ -178,11 +184,16 @@ class ConfirmOrderIT {
         return quoteCart.handle(command).header().key();
     }
 
-    private Callable<Void> confirmation(QuoteKey key) {
+    private Callable<Void> confirmation(QuoteKey key, String idempotencyKey) {
         return () -> {
-            confirmOrder.handle(key);
+            confirmOrder.handle(command(key, idempotencyKey));
             return null;
         };
+    }
+
+    private static ConfirmOrderCommand command(QuoteKey key, String idempotencyKey) {
+        return new ConfirmOrderCommand(
+                key.tenantId(), key.customerId(), key.quoteId(), idempotencyKey, key.quoteId());
     }
 
     // Cada resultado es null si la tarea terminó bien, o la excepción que lanzó.

@@ -74,7 +74,9 @@ curl -i http://localhost:8080/v1/orders \
   -d '{"quoteId": "{quoteId}"}'
 ```
 
-Responde 201 con la orden, su número (`CO-A-00000001`) y `Location: /v1/orders/{orderId}`. La orden copia el desglose guardado en la cotización sin recalcularlo, así que el total es el cotizado aunque después cambien los precios, las reglas o las tasas. A crédito, `credit` informa el cupo consumido y el que queda con ese distribuidor. La cabecera `Idempotency-Key` es obligatoria, con 1 a 128 caracteres ASCII visibles. Consultar la orden devuelve el mismo cuerpo del 201, byte a byte, y solo la ve el tendero que la confirmó.
+Responde 201 con la orden, su número (`CO-A-00000001`) y `Location: /v1/orders/{orderId}`. La orden copia el desglose guardado en la cotización sin recalcularlo, así que el total es el cotizado aunque después cambien los precios, las reglas o las tasas. A crédito, `credit` informa el cupo consumido y el que queda con ese distribuidor. Consultar la orden devuelve el mismo cuerpo del 201, byte a byte, y solo la ve el tendero que la confirmó.
+
+La cabecera `Idempotency-Key` es obligatoria, con 1 a 128 caracteres ASCII visibles. Un reintento con la misma clave y el mismo cuerpo recibe el 201 original, byte a byte, con `Idempotent-Replayed: true`, y no crea otra orden ni consume cupo otra vez. La misma clave con otro cuerpo responde 422. Cada tendero tiene sus propias claves, que vencen según el tenant, 24 horas en las semillas.
 
 ```bash
 curl -i http://localhost:8080/v1/orders/{orderId} \
@@ -87,7 +89,7 @@ Los errores usan `application/problem+json` con un `code` estable y el `correlat
 - 404 si el tenant, el tendero, la cotización, la orden o la ruta no existen.
 - 405 si la ruta no admite el método y 415 si el cuerpo no es `application/json`.
 - 409 si la cotización venció (con `expiresAt`) o ya se confirmó (con su `orderId`).
-- 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor. También al confirmar a crédito si el cupo ya no alcanza (con `available` y `required`) o si la cuenta dejó de existir.
+- 422 cuando el contenido no se puede cotizar porque el carrito tiene errores, el distribuidor no es del tenant o no hay cuenta de crédito con ese distribuidor. También al confirmar a crédito si el cupo ya no alcanza (con `available` y `required`) o si la cuenta dejó de existir, y cuando la `Idempotency-Key` ya se usó con otro cuerpo.
 
 Los errores de forma y los del carrito traen `errors[]` con la posición del ítem, el campo, el SKU recibido y el código. El carrito informa todos sus errores juntos.
 
@@ -119,9 +121,10 @@ El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión
 
 ## Confirmación
 
-Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit no queda orden, consumo de cupo ni eventos, y la respuesta es un error. El 201 sale después del commit, así que una orden respondida ya se puede consultar.
+Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit no queda orden, consumo de cupo, eventos ni la clave reservada, y la respuesta es un error. El 201 sale después del commit, así que una orden respondida ya se puede consultar.
 
-- **La cotización se bloquea primero.** Dos confirmaciones de la misma cotización se ordenan en ese bloqueo, y la segunda encuentra la orden de la primera y responde 409 con su `orderId`. La restricción única sobre `quote_id` es una segunda barrera y da la misma respuesta.
+- **Reservar la clave de idempotencia es lo primero de la transacción.** Un reintento simultáneo con la misma clave espera a que termine la primera petición y recibe su respuesta. Solo se guardan los 201, así que un rechazo se evalúa de nuevo al reintentar. El cuerpo se compara por el SHA-256 de su JSON ya normalizado, así que los espacios no cuentan. Con la clave vencida, reintentar la misma cotización responde 409 con su orden.
+- **Después se bloquea la cotización.** Dos confirmaciones de la misma cotización se ordenan en ese bloqueo, y la segunda encuentra la orden de la primera y responde 409 con su `orderId`. La restricción única sobre `quote_id` es una segunda barrera y da la misma respuesta.
 - **Una cotización ya confirmada responde con su orden antes de mirar el vencimiento.** Quien reintenta tarde recibe la orden que ya tiene y no un aviso de cotización vencida.
 - **La cotización vence en `expiresAt` exacto.** Se puede confirmar hasta el segundo anterior. El tiempo de vigencia acota cuánto se respeta un precio anterior.
 - **El cupo se descuenta con un `UPDATE` condicional** (`available >= total`) en lugar de leer la cuenta, restar y guardarla. Dos órdenes que caben por separado pero no juntas, confirmadas a la vez, nunca dejan el cupo negativo. Que la cotización dijera que cabía no garantiza la confirmación, porque el cupo pudo consumirse mientras tanto. Cada consumo queda como un movimiento ligado a la orden.
@@ -144,6 +147,5 @@ Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: 
 
 ## Pendientes y por qué
 
-- **Reintento con la misma clave.** La confirmación exige `Idempotency-Key` y valida su formato, pero todavía no guarda la respuesta para repetirla. Un reintento de una orden ya confirmada no la duplica, pero responde 409 con su `orderId` en lugar del 201 original.
 - **Entrega de los avisos.** Los avisos al ERP y al tendero se guardan como pendientes, pero todavía no hay un proceso que los entregue.
 - **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.
