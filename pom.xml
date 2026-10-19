@@ -22,6 +22,9 @@
         <archunit.version>1.5.1</archunit.version>
         <jacoco.version>0.8.15</jacoco.version>
         <spotless.version>3.10.4</spotless.version>
+        <!-- Parches de seguridad que Spring Boot 4.1.1 todavía no trae. Se quitan al subir de Boot. -->
+        <jackson-bom.version>3.1.8</jackson-bom.version>
+        <tomcat.version>11.0.27</tomcat.version>
         <surefireArgLine/>
         <failsafeArgLine/>
     </properties>

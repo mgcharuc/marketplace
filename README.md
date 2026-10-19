@@ -2,11 +2,13 @@
 
 API para cotizar y confirmar pedidos de tenderos a distribuidores de bebidas, en varios países y marcas.
 
+Las decisiones de diseño y las alternativas descartadas están en [ADR.md](ADR.md).
+
 ## Cómo correrlo
 
 ### Requisitos
 
-- JDK 21. Con [SDKMAN](https://sdkman.io): `sdk env install` instala y activa la versión fijada en `.sdkmanrc`. La activación solo dura en esa terminal. En cada terminal nueva ejecute `sdk env` dentro del proyecto, o active `sdkman_auto_env=true` en `~/.sdkman/etc/config` para que se aplique al entrar a la carpeta. Con un JDK anterior, Maven falla con `has been compiled by a more recent version of the Java Runtime`.
+- JDK 21. Con [SDKMAN](https://sdkman.io), `sdk env install` instala y activa la versión fijada en `.sdkmanrc`. La activación solo dura en esa terminal. En cada terminal nueva ejecute `sdk env` dentro del proyecto, o active `sdkman_auto_env=true` en `~/.sdkman/etc/config` para que se aplique al entrar a la carpeta. Con un JDK anterior, Maven falla con `has been compiled by a more recent version of the Java Runtime`.
 - Docker o Podman para las pruebas de integración (PostgreSQL 17 con Testcontainers).
 
 ### Compilar y probar
@@ -120,7 +122,7 @@ Al arrancar, la aplicación crea el esquema con Flyway y guarda en PostgreSQL lo
 
 El motor (`PricingEngine`) ejecuta las etapas en el orden que define la versión comercial del tenant. Las semillas usan `COMBO → ESCALA → OBSEQUIO → IMPUESTOS → CREDITO`.
 
-- **El combo va antes que la escala.** Es la regla más específica: un precio cerrado para un conjunto concreto de productos. Si la escala fuera primero, las unidades que después forman el combo ayudarían a alcanzar un tramo de escala y la misma unidad daría dos beneficios. Por ejemplo, con 5 GASEOSA-1500 y 3 SNACK-PAPAS, el combo consume 2 gaseosas y la escala cuenta solo las 3 que quedan: descuento total 1650. Con la escala primero serían 2150.
+- **El combo va antes que la escala.** Es la regla más específica, un precio cerrado para un conjunto concreto de productos. Si la escala fuera primero, las unidades que después forman el combo ayudarían a alcanzar un tramo de escala y la misma unidad daría dos beneficios. Por ejemplo, con 5 GASEOSA-1500 y 3 SNACK-PAPAS, el combo consume 2 gaseosas y la escala cuenta solo las 3 que quedan: descuento total 1650. Con la escala primero serían 2150.
 - **Una unidad recibe como máximo un descuento.** La escala cuenta posiciones solo sobre las unidades que el combo no consumió.
 - **Dentro de una etapa**, las reglas se aplican por prioridad y luego por id, y cada una toma todo lo que puede de las unidades que quedan. No se busca la combinación más favorable para el cliente.
 - **Los impuestos van después de los descuentos**, porque la base gravable es lo que queda después de los descuentos comerciales. El descuento del combo se reparte entre sus líneas solo para calcular la base gravable de cada producto, que puede tener otra tasa. No aparece como un descuento por producto.
@@ -174,7 +176,18 @@ Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueb
 
 ## Casos golden
 
-Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos, tramos y obsequios, y que el crédito compare el total con el cupo. La derivación de cada monto está en `src/test/resources/golden/README.md`.
+Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta. Cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos, tramos y obsequios, y que el crédito compare el total con el cupo. La derivación de cada monto está en `src/test/resources/golden/README.md`.
+
+| Caso que pide el enunciado | Dónde se prueba |
+|---|---|
+| 1. Descuento en dos tramos | `GoldenTest`, carpeta `escala-dos-tramos` |
+| 2. Combo cuyos productos no aparecen como descuento suelto | `GoldenTest`, carpeta `combo-sin-descuento-suelto` |
+| 3. Obsequio con su cantidad en el desglose | `GoldenTest`, carpeta `obsequio-con-su-cantidad` |
+| 4. Combo con impuestos | `GoldenTest`, carpetas `combo-con-impuestos` y `combo-en-dolares-con-residuo` |
+| 5. Pedido a crédito que excede el cupo | `GoldenTest`, carpeta `credito-excede-el-cupo`, y `OrderApiIT.creditLimitExceededIsRejected` al confirmar |
+| 6. Cotizar y confirmar dan el mismo total | `OrderApiIT.confirmsQuoteIntoOrder`, `OrderApiIT.orderKeepsQuotedTotalAfterNewVersion` y `PricingEngineTest.isDeterministic` |
+
+El caso 6 no es un golden del motor, porque la confirmación no vuelve a calcular. Las pruebas de integración cotizan y confirman por HTTP contra PostgreSQL, también después de publicar una versión con otros precios, y la del motor comprueba que el mismo carrito da siempre el mismo desglose.
 
 ## Organización del código
 
@@ -189,4 +202,21 @@ Es un monolito con puertos y adaptadores. Las dependencias van siempre hacia ade
 
 - **Dos casos golden del motor.** La escala antes que el combo y dos combos que compiten por un SKU ya tienen pruebas unitarias en `PricingEngineTest`, pero no un caso golden. Se priorizaron los golden que pide el enunciado.
 - **Umbrales estrictos de cobertura.** El build exige 80 % de líneas en el dominio y en el motor. Las pruebas unitarias cubren hoy el 89 % de las líneas del dominio y el 98 % de las del motor, y más del 93 % de las ramas en los dos. El umbral no se subió al 90 % de líneas porque habría que escribir pruebas solo para alcanzar el número.
+
+### Fuera del alcance
+
+- **Autenticación.** La identidad llega en cabeceras y la resuelve el gateway, igual que el rate limiting, CORS, HTTPS y las cabeceras de seguridad.
+- **Integraciones reales con el ERP y el proveedor de notificaciones.** Los adaptadores del ERP y del push solo escriben el envío en el log, porque el enunciado no pide infraestructura.
+- **Sincronización del cupo con el ERP** (abonos, mora y conciliación). El cupo local es una réplica y los movimientos por orden permiten conciliar. Es el riesgo que trata el ADR.
+- **Lo que pasa después de confirmar**, como el rechazo del ERP o la cancelación con liberación de cupo. Necesita compensaciones con el ERP.
+- **Catálogo y palancas por distribuidor.** Extender la configuración del tenant a cada distribuidor no cambia el motor.
+- **Carritos con varios distribuidores.** Se dividirían en un pedido por distribuidor antes de cotizar, y cada uno sigue este mismo flujo.
+- **Administración de la configuración.** Para el ejercicio bastan las semillas, y las pruebas publican versiones nuevas desde el código.
+- **Tasas del país con vigencia.** La cotización guarda su desglose, así que un cambio de tasa no altera las cotizaciones vigentes.
+- **Impuestos por unidad o volumen, en cascada o incluidos en el precio, y una base del obsequio distinta del precio de lista.** Cambian según el país y el enunciado pide una tasa por SKU.
+- **Presupuesto de promociones y reglas por segmento o canal.** Un presupuesto se descontaría con el mismo `UPDATE` condicional que el cupo.
+- **Conversión entre unidades de venta.** `quantity` va siempre en la unidad de venta del SKU.
+- **Inventario, pagos y facturación.** Pertenecen a otros sistemas.
+- **Limpieza de claves de idempotencia vencidas.** Una clave vencida se sobrescribe cuando se vuelve a usar, así que las filas viejas no molestan. Borrarlas es un job de operación.
+- **Row-Level Security y despliegue.** El enunciado no los pide. Row-Level Security sería una segunda barrera además del filtro por tenant de cada consulta.
 
