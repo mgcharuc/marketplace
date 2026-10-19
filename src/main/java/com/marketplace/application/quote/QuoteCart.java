@@ -74,7 +74,7 @@ public class QuoteCart {
         if (!distributors.exists(tenant.id(), command.distributorId())) {
             throw new DistributorNotFoundException();
         }
-        CreditAvailability credit = credit(command, valid.paymentMethod());
+        CreditAvailability credit = credit(command, valid.paymentMethod(), tenant);
         Instant now = time.now();
         Breakdown breakdown =
                 engine.price(new PricingInput(config, tenant, valid.cart(), credit, now));
@@ -96,12 +96,15 @@ public class QuoteCart {
         return quote;
     }
 
-    private CreditAvailability credit(QuoteCartCommand command, PaymentMethod method) {
+    private CreditAvailability credit(
+            QuoteCartCommand command, PaymentMethod method, Tenant tenant) {
         if (method == PaymentMethod.CASH) {
             return CreditAvailability.none();
         }
         var key = new CreditKey(command.tenantId(), command.customerId(), command.distributorId());
-        CreditAccount account = credits.find(key).orElseThrow(CreditAccountNotFoundException::new);
+        CreditAccount account =
+                credits.find(key, tenant.currency())
+                        .orElseThrow(CreditAccountNotFoundException::new);
         return CreditAvailability.available(account.available());
     }
 }

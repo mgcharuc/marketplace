@@ -32,6 +32,13 @@ class JpaQuoteRepository implements QuoteRepository {
                 .map(quote -> quote.toDomain(currency(key.tenantId())));
     }
 
+    @Override
+    public Optional<Quote> lock(QuoteKey key, CurrencyConfig currency) {
+        return quotes.findLockedByIdAndTenantIdAndCustomerId(
+                        key.quoteId(), key.tenantId(), key.customerId())
+                .map(quote -> quote.toDomain(currency));
+    }
+
     private CurrencyConfig currency(String tenantId) {
         return tenants.find(tenantId)
                 .map(Tenant::currency)

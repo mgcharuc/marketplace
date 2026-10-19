@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.marketplace.application.port.QuoteRepository;
 import com.marketplace.application.port.TenantRepository;
+import com.marketplace.application.port.UnitOfWork;
 import com.marketplace.domain.money.Money;
 import com.marketplace.domain.quote.PaymentMethod;
 import com.marketplace.domain.quote.Quote;
@@ -11,11 +12,18 @@ import com.marketplace.domain.quote.QuoteHeader;
 import com.marketplace.domain.quote.QuoteKey;
 import com.marketplace.support.FixedTimeSource;
 import com.marketplace.support.IntegrationTest;
+import com.marketplace.support.Latches;
+import com.marketplace.support.LockWaits;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @IntegrationTest
 class JpaQuoteRepositoryIT {
@@ -25,6 +33,8 @@ class JpaQuoteRepositoryIT {
 
     @Autowired QuoteRepository quotes;
     @Autowired TenantRepository tenants;
+    @Autowired UnitOfWork unitOfWork;
+    @Autowired JdbcTemplate jdbc;
 
     @Test
     @DisplayName("La cotización se lee igual a como se guardó, con el snapshot intacto")
@@ -49,6 +59,56 @@ class JpaQuoteRepositoryIT {
         assertThat(quotes.find(new QuoteKey("CO-MARCA-A", "CLI-CREDITO-ALTO", id))).isEmpty();
         assertThat(quotes.find(new QuoteKey("CO-MARCA-B", "CLI-CONTADO", id))).isEmpty();
         assertThat(quotes.find(new QuoteKey("CO-MARCA-A", "CLI-CONTADO", "q_otro"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Bloquear la cotización la devuelve solo a su tendero y dentro de su tenant")
+    void lockIsScopedToTenantAndCustomer() {
+        var quote = quote("CO-MARCA-A", "CLI-CONTADO", "DIST-NORTE", "22610");
+        quotes.save(quote);
+        String id = quote.header().quoteId();
+
+        assertThat(lock(new QuoteKey("CO-MARCA-A", "CLI-CONTADO", id))).contains(quote);
+        assertThat(lock(new QuoteKey("CO-MARCA-A", "CLI-CREDITO-ALTO", id))).isEmpty();
+        assertThat(lock(new QuoteKey("CO-MARCA-B", "CLI-CONTADO", id))).isEmpty();
+    }
+
+    @Test
+    @DisplayName(
+            "Mientras una transacción tiene bloqueada la cotización, otra espera a que termine")
+    void secondLockWaitsForTheFirstTransaction() throws Exception {
+        var quote = quote("CO-MARCA-A", "CLI-CONTADO", "DIST-NORTE", "22610");
+        quotes.save(quote);
+        var key = quote.header().key();
+        var locked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            executor.submit(
+                    () ->
+                            unitOfWork.run(
+                                    () -> {
+                                        lockIn(key);
+                                        locked.countDown();
+                                        Latches.await(release);
+                                    }));
+            Latches.await(locked);
+            var second = executor.submit(() -> lock(key));
+
+            LockWaits.await(jdbc, 1);
+            assertThat(second).isNotDone();
+            release.countDown();
+
+            assertThat(second.get(10, TimeUnit.SECONDS)).contains(quote);
+        }
+    }
+
+    private Optional<Quote> lock(QuoteKey key) {
+        return unitOfWork.execute(() -> lockIn(key));
+    }
+
+    private Optional<Quote> lockIn(QuoteKey key) {
+        return quotes.lock(key, tenants.find(key.tenantId()).orElseThrow().currency());
     }
 
     private Quote quote(String tenantId, String customerId, String distributorId, String total) {

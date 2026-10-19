@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.marketplace.application.port.ConfigRepository;
 import com.marketplace.application.port.CreditRepository;
+import com.marketplace.domain.config.ConfigFixtures;
 import com.marketplace.domain.credit.CreditKey;
+import com.marketplace.domain.money.Money;
 import com.marketplace.support.IntegrationTest;
 import java.math.BigDecimal;
 import java.util.List;
@@ -74,7 +76,9 @@ class LoadSeedsIT {
     @DisplayName("El cupo inicial es a la vez el límite y el disponible")
     void creditLimitStartsAsAvailable() {
         var account =
-                credits.find(new CreditKey("CO-MARCA-A", "CLI-CREDITO-BAJO", "DIST-SUR"))
+                credits.find(
+                                new CreditKey("CO-MARCA-A", "CLI-CREDITO-BAJO", "DIST-SUR"),
+                                ConfigFixtures.CO.currency())
                         .orElseThrow();
 
         assertThat(account.creditLimit().amount()).isEqualTo("100000");
@@ -85,13 +89,18 @@ class LoadSeedsIT {
     @DisplayName("Cargar las semillas otra vez no duplica ni pisa los datos existentes")
     void reloadingKeepsExistingData() {
         var key = new CreditKey("CO-MARCA-A", "CLI-CREDITO-BAJO", "DIST-NORTE");
-        credits.consume(key, new BigDecimal("1000"));
+        credits.consume(key, new Money(new BigDecimal("1000"), ConfigFixtures.CO.currency()));
         var before = jdbc.queryForMap(COUNTS);
 
         loadSeeds.handle();
 
         assertThat(jdbc.queryForMap(COUNTS)).isEqualTo(before);
-        assertThat(credits.find(key).orElseThrow().available().amount()).isEqualTo("49000");
+        assertThat(
+                        credits.find(key, ConfigFixtures.CO.currency())
+                                .orElseThrow()
+                                .available()
+                                .amount())
+                .isEqualTo("49000");
     }
 
     @Test

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.marketplace.application.port.CreditRepository;
 import com.marketplace.application.port.UnitOfWork;
+import com.marketplace.domain.config.ConfigFixtures;
 import com.marketplace.domain.credit.CreditKey;
+import com.marketplace.domain.money.Money;
 import com.marketplace.support.IntegrationTest;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
@@ -26,9 +28,9 @@ class JpaUnitOfWorkIT {
     @Test
     @DisplayName("Lo que se hace dentro de la unidad de trabajo queda guardado al terminar")
     void commitsWork() {
-        var after = unitOfWork.execute(() -> credits.consume(HIGH_NORTH, new BigDecimal("1000")));
+        var after = unitOfWork.execute(() -> credits.consume(HIGH_NORTH, cop("1000")));
 
-        assertThat(after).hasValue(new BigDecimal("999000"));
+        assertThat(after).hasValue(cop("999000"));
         assertThat(available(HIGH_NORTH)).isEqualTo("999000");
     }
 
@@ -39,8 +41,8 @@ class JpaUnitOfWorkIT {
                         () ->
                                 unitOfWork.run(
                                         () -> {
-                                            credits.consume(HIGH_NORTH, new BigDecimal("1000"));
-                                            credits.consume(LOW_NORTH, new BigDecimal("1000"));
+                                            credits.consume(HIGH_NORTH, cop("1000"));
+                                            credits.consume(LOW_NORTH, cop("1000"));
                                             throw new IllegalStateException("fallo inyectado");
                                         }))
                 .hasMessage("fallo inyectado");
@@ -49,7 +51,11 @@ class JpaUnitOfWorkIT {
         assertThat(available(LOW_NORTH)).isEqualTo("50000");
     }
 
+    private static Money cop(String amount) {
+        return new Money(new BigDecimal(amount), ConfigFixtures.CO.currency());
+    }
+
     private BigDecimal available(CreditKey key) {
-        return credits.find(key).orElseThrow().available().amount();
+        return credits.find(key, ConfigFixtures.CO.currency()).orElseThrow().available().amount();
     }
 }

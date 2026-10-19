@@ -2,11 +2,11 @@ package com.marketplace.adapters.persistence.credit;
 
 import com.marketplace.adapters.persistence.StoredAmounts;
 import com.marketplace.application.port.CreditRepository;
-import com.marketplace.application.port.TenantRepository;
-import com.marketplace.domain.config.Tenant;
 import com.marketplace.domain.credit.CreditAccount;
 import com.marketplace.domain.credit.CreditKey;
+import com.marketplace.domain.credit.CreditMovement;
 import com.marketplace.domain.money.CurrencyConfig;
+import com.marketplace.domain.money.Money;
 import java.math.BigDecimal;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
@@ -15,17 +15,18 @@ import org.springframework.stereotype.Repository;
 class JpaCreditRepository implements CreditRepository {
 
     private final CreditAccountEntityRepository accounts;
-    private final TenantRepository tenants;
+    private final CreditMovementEntityRepository movements;
 
-    JpaCreditRepository(CreditAccountEntityRepository accounts, TenantRepository tenants) {
+    JpaCreditRepository(
+            CreditAccountEntityRepository accounts, CreditMovementEntityRepository movements) {
         this.accounts = accounts;
-        this.tenants = tenants;
+        this.movements = movements;
     }
 
     @Override
-    public Optional<CreditAccount> find(CreditKey key) {
+    public Optional<CreditAccount> find(CreditKey key, CurrencyConfig currency) {
         return accounts.findById(CreditAccountId.of(key))
-                .map(account -> account.toDomain(currency(key)));
+                .map(account -> account.toDomain(currency));
     }
 
     @Override
@@ -34,15 +35,13 @@ class JpaCreditRepository implements CreditRepository {
     }
 
     @Override
-    public Optional<BigDecimal> consume(CreditKey key, BigDecimal amount) {
-        return accounts.consume(CreditAccountId.of(key), amount)
-                .map(available -> StoredAmounts.inScale(available, currency(key)));
+    public Optional<Money> consume(CreditKey key, Money amount) {
+        return accounts.consume(CreditAccountId.of(key), amount.amount())
+                .map(available -> StoredAmounts.money(available, amount.currency()));
     }
 
-    private CurrencyConfig currency(CreditKey key) {
-        return tenants.find(key.tenantId())
-                .map(Tenant::currency)
-                .orElseThrow(
-                        () -> new IllegalStateException("Tenant sin registrar: " + key.tenantId()));
+    @Override
+    public void record(CreditMovement movement) {
+        movements.save(new CreditMovementEntity(movement));
     }
 }
