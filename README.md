@@ -17,7 +17,7 @@ Las decisiones de diseño y las alternativas descartadas están en [ADR.md](ADR.
 ./mvnw verify
 ```
 
-Ejecuta las pruebas unitarias y de integración, el reporte de cobertura (`target/site/jacoco`) y la verificación de formato. Sin motor de contenedores, las pruebas de integración se omiten con un aviso en el log. Para exigirlas:
+Ejecuta las pruebas unitarias y de integración, el reporte de cobertura (`target/site/jacoco`) y la verificación de formato. La salida de cada prueba queda en `target/surefire-reports` y `target/failsafe-reports`. Sin motor de contenedores, las pruebas de integración se omiten y el resumen de Maven las cuenta como `Skipped`. Para que fallen en ese caso:
 
 ```bash
 ./mvnw verify -Dpostgres.required=true

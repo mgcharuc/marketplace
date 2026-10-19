@@ -108,6 +108,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>@{surefireArgLine} -XX:+EnableDynamicAgentLoading</argLine>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <excludes>
                         <exclude>**/*IT.java</exclude>
                     </excludes>
@@ -119,6 +120,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <argLine>@{failsafeArgLine} -XX:+EnableDynamicAgentLoading</argLine>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
