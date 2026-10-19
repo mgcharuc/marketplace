@@ -1,0 +1,106 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-1500",
+      "name": "Gaseosa Cola 1,5 L",
+      "quantity": 2,
+      "unitPrice": "5000",
+      "grossAmount": "10000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "909"
+        }
+      ],
+      "taxableBase": "9091",
+      "taxRate": "0.19",
+      "taxAmount": "1727",
+      "netAmount": "10818"
+    },
+    {
+      "lineId": "L2",
+      "sku": "JUGO-1L",
+      "name": "Jugo de naranja 1 L",
+      "quantity": 2,
+      "unitPrice": "4000",
+      "grossAmount": "8000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [],
+      "taxableBase": "8000",
+      "taxRate": "0.05",
+      "taxAmount": "400",
+      "netAmount": "8400"
+    },
+    {
+      "lineId": "L3",
+      "sku": "SNACK-PAPAS",
+      "name": "Papas fritas 150 g",
+      "quantity": 3,
+      "unitPrice": "1800",
+      "grossAmount": "5400",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "491"
+        }
+      ],
+      "taxableBase": "4909",
+      "taxRate": "0.19",
+      "taxAmount": "933",
+      "netAmount": "5842"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "CMB-FIESTA",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-FIESTA",
+      "name": "Combo Fiesta",
+      "applications": 1,
+      "components": [
+        {
+          "sku": "GASEOSA-1500",
+          "qty": 2
+        },
+        {
+          "sku": "SNACK-PAPAS",
+          "qty": 3
+        }
+      ],
+      "listValue": "15400",
+      "comboPrice": "14000",
+      "amount": "1400",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "909"
+        },
+        {
+          "lineId": "L3",
+          "amount": "491"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "23400",
+    "discountTotal": "1400",
+    "netSubtotal": "22000",
+    "taxableBase": "22000",
+    "taxTotal": "3060",
+    "total": "25060"
+  },
+  "credit": null
+}

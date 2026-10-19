@@ -1,0 +1,123 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-1500",
+      "name": "Gaseosa Cola 1,5 L",
+      "quantity": 3,
+      "unitPrice": "5000",
+      "grossAmount": "15000",
+      "scaleDiscounts": [
+        {
+          "ruleId": "ESC-GAS1500",
+          "amount": "250"
+        }
+      ],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "909"
+        }
+      ],
+      "taxableBase": "13841",
+      "taxRate": "0.19",
+      "taxAmount": "2630",
+      "netAmount": "16471"
+    },
+    {
+      "lineId": "L2",
+      "sku": "SNACK-PAPAS",
+      "name": "Papas fritas 150 g",
+      "quantity": 3,
+      "unitPrice": "1800",
+      "grossAmount": "5400",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [
+        {
+          "ruleId": "CMB-FIESTA",
+          "amount": "491"
+        }
+      ],
+      "taxableBase": "4909",
+      "taxRate": "0.19",
+      "taxAmount": "933",
+      "netAmount": "5842"
+    }
+  ],
+  "discounts": [
+    {
+      "ruleId": "ESC-GAS1500",
+      "type": "ESCALA",
+      "origin": "ESCALA:ESC-GAS1500",
+      "name": "Escala Gaseosa 1,5 L",
+      "applications": null,
+      "components": null,
+      "listValue": null,
+      "comboPrice": null,
+      "amount": "250",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "250"
+        }
+      ],
+      "mode": "MARGINAL",
+      "tiers": [
+        {
+          "fromQty": 3,
+          "percent": "5",
+          "units": 1,
+          "amount": "250"
+        }
+      ]
+    },
+    {
+      "ruleId": "CMB-FIESTA",
+      "type": "COMBO",
+      "origin": "COMBO:CMB-FIESTA",
+      "name": "Combo Fiesta",
+      "applications": 1,
+      "components": [
+        {
+          "sku": "GASEOSA-1500",
+          "qty": 2
+        },
+        {
+          "sku": "SNACK-PAPAS",
+          "qty": 3
+        }
+      ],
+      "listValue": "15400",
+      "comboPrice": "14000",
+      "amount": "1400",
+      "lineAmounts": [
+        {
+          "lineId": "L1",
+          "amount": "909"
+        },
+        {
+          "lineId": "L2",
+          "amount": "491"
+        }
+      ],
+      "mode": null,
+      "tiers": null
+    }
+  ],
+  "gifts": [],
+  "totals": {
+    "grossSubtotal": "20400",
+    "discountTotal": "1650",
+    "netSubtotal": "18750",
+    "taxableBase": "18750",
+    "taxTotal": "3563",
+    "total": "22313"
+  },
+  "credit": null
+}

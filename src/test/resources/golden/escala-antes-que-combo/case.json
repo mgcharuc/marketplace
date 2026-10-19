@@ -1,0 +1,24 @@
+{
+  "description": "Con la escala antes que el combo, las unidades del combo ayudan a alcanzar el tramo",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "pipeline": ["ESCALA", "COMBO", "OBSEQUIO", "IMPUESTOS", "CREDITO"]
+  },
+  "now": "2026-10-16T15:00:00Z",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-1500",
+        "quantity": 3
+      },
+      {
+        "sku": "SNACK-PAPAS",
+        "quantity": 3
+      }
+    ]
+  }
+}

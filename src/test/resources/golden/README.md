@@ -147,3 +147,21 @@ Cambios sobre la semilla: la escala de GASEOSA-350 vale hasta `2026-10-17T00:00:
 - A las 23:55 (-05:00), cinco minutos antes del fin, la escala aplica. Las unidades 10 a 19 van al 5 %, 10 × 2000 × 5 % = 1000, y las 20 a 25 al 10 %, 6 × 2000 × 10 % = 1200. Base 47800, IVA 9082. Total 56882.
 - A las 00:00 (-05:00) la escala ya no aplica, porque el fin no se incluye. Base 50000, IVA 9500. Total 59500.
 - El obsequio no tiene fechas de vigencia y en los dos casos da 2 jugos, base 8000 e IVA 400 a cargo del vendedor.
+
+## `escala-antes-que-combo`
+
+Cambio sobre la semilla: el pipeline pone la escala antes que el combo. Carrito de `combo-sin-descuento-suelto`.
+
+- La escala de GASEOSA-1500 cuenta las 3 unidades, incluidas las 2 que después forman el combo, así que alcanza el tramo desde la unidad 3. Esa unidad lleva el 5 %, 5000 × 5 % = 250.
+- Combo Fiesta usa las 2 GASEOSA-1500 que quedan y las 3 SNACK-PAPAS. Descuento 1400, repartido 909 y 491.
+- GASEOSA-1500: 15000 − 250 − 909 = 13841, IVA 2629,79 → 2630. SNACK-PAPAS: 4909, IVA 933.
+- Descuentos 1650, base 18750, impuestos 3563. Total 22313. Con el combo primero la escala solo ve una gaseosa, no llega al tramo y el total es 22610.
+
+## `combos-que-compiten`
+
+Carrito: GASEOSA-1500 × 2, JUGO-1L × 2 y SNACK-PAPAS × 3.
+
+- Combo Fiesta, con prioridad 10, se aplica primero y usa las 3 SNACK-PAPAS. Descuento 1400, repartido 909 y 491.
+- Combo Desayuno, con prioridad 20, necesita 2 SNACK-PAPAS y ya no quedan, así que no aparece en el desglose.
+- GASEOSA-1500: 10000 − 909 = 9091, IVA 1727,29 → 1727. JUGO-1L sin descuento: 8000, IVA 5 % = 400. SNACK-PAPAS: 4909, IVA 933.
+- Bruto 23400, descuentos 1400, base 22000, impuestos 3060. Total 25060.

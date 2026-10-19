@@ -204,7 +204,6 @@ Es un monolito con puertos y adaptadores. Las dependencias van siempre hacia ade
 
 ## Pendientes y por qué
 
-- **Dos casos golden del motor.** La escala antes que el combo y dos combos que compiten por un SKU ya tienen pruebas unitarias en `PricingEngineTest`, pero no un caso golden. Se priorizaron los golden que pide el enunciado.
 - **Umbrales estrictos de cobertura.** El build exige 80 % de líneas en el dominio y en el motor. Las pruebas unitarias cubren hoy el 89 % de las líneas del dominio y el 98 % de las del motor, y más del 93 % de las ramas en los dos. El umbral no se subió al 90 % de líneas porque habría que escribir pruebas solo para alcanzar el número.
 
 ### Fuera del alcance
