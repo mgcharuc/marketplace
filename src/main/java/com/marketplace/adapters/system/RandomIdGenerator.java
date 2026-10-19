@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RandomIdGenerator implements IdGenerator {
 
@@ -14,9 +15,12 @@ public class RandomIdGenerator implements IdGenerator {
     private static final int BITS_PER_CHAR = 5;
     private static final long UUID_VERSION_7 = 0x7000L;
     private static final long UUID_VARIANT = 0x8000_0000_0000_0000L;
+    private static final int COUNTER_BITS = 12;
+    private static final long COUNTER_MASK = (1L << COUNTER_BITS) - 1;
 
     private final Clock clock;
     private final Random random;
+    private final AtomicLong lastEvent = new AtomicLong();
 
     public RandomIdGenerator() {
         this(Clock.systemUTC(), drbg());
@@ -46,9 +50,14 @@ public class RandomIdGenerator implements IdGenerator {
         return "o_" + ulid();
     }
 
+    // Los 12 bits después de los milisegundos son un contador, para que dos ids del mismo
+    // milisegundo queden en el orden en que se crearon.
     @Override
     public UUID eventId() {
-        long msb = clock.millis() << 16 | UUID_VERSION_7 | random.nextInt(1 << 12);
+        long stamp =
+                lastEvent.updateAndGet(
+                        previous -> Math.max(previous + 1, clock.millis() << COUNTER_BITS));
+        long msb = (stamp >>> COUNTER_BITS) << 16 | UUID_VERSION_7 | stamp & COUNTER_MASK;
         long lsb = random.nextLong() >>> 2 | UUID_VARIANT;
         return new UUID(msb, lsb);
     }

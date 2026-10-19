@@ -60,6 +60,17 @@ class RandomIdGeneratorTest {
     }
 
     @Test
+    @DisplayName("Los ids de evento del mismo milisegundo crecen en el orden en que se piden")
+    void eventIdsGrowWithinTheSameMillisecond() {
+        long previous = ids.eventId().getMostSignificantBits();
+        for (int i = 0; i < 5_000; i++) {
+            long next = ids.eventId().getMostSignificantBits();
+            assertThat(Long.compareUnsigned(next, previous)).isPositive();
+            previous = next;
+        }
+    }
+
+    @Test
     @DisplayName("Ids generados en el mismo milisegundo no se repiten")
     void idsAreUnique() {
         var seen = new HashSet<String>();
