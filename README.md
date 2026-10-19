@@ -189,6 +189,10 @@ Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta. 
 
 El caso 6 no es un golden del motor, porque la confirmación no vuelve a calcular. Las pruebas de integración cotizan y confirman por HTTP contra PostgreSQL, también después de publicar una versión con otros precios, y la del motor comprueba que el mismo carrito da siempre el mismo desglose.
 
+## Front
+
+`web/` tiene la pantalla de resumen del pedido en Angular, que muestra una orden de esta API o un pedido de ejemplo. Se corre aparte con `npm ci` y `npm start` dentro de `web/` (ver `web/README.md`), y `./mvnw verify` no la incluye.
+
 ## Organización del código
 
 Es un monolito con puertos y adaptadores. Las dependencias van siempre hacia adentro, y `ArchitectureTest` hace fallar el build si alguna se invierte.
