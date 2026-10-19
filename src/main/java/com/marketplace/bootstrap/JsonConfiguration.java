@@ -1,9 +1,13 @@
 package com.marketplace.bootstrap;
 
 import com.marketplace.adapters.json.JsonConfigCodec;
+import com.marketplace.adapters.json.JsonEventPayloadRenderer;
+import com.marketplace.adapters.json.JsonOrderResponseRenderer;
 import com.marketplace.adapters.json.JsonQuoteRenderer;
 import com.marketplace.adapters.json.JsonSeedSource;
 import com.marketplace.application.port.ConfigCodec;
+import com.marketplace.application.port.EventPayloadRenderer;
+import com.marketplace.application.port.OrderResponseRenderer;
 import com.marketplace.application.port.QuoteRenderer;
 import com.marketplace.application.port.SeedSource;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +24,16 @@ class JsonConfiguration {
     @Bean
     QuoteRenderer quoteRenderer() {
         return new JsonQuoteRenderer();
+    }
+
+    @Bean
+    OrderResponseRenderer orderResponseRenderer() {
+        return new JsonOrderResponseRenderer();
+    }
+
+    @Bean
+    EventPayloadRenderer eventPayloadRenderer() {
+        return new JsonEventPayloadRenderer();
     }
 
     @Bean
