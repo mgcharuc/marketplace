@@ -1,7 +1,9 @@
 package com.marketplace.adapters.persistence.outbox;
 
 import com.marketplace.adapters.persistence.AssignedIdEntity;
+import com.marketplace.domain.outbox.Destination;
 import com.marketplace.domain.outbox.OutboxEvent;
+import com.marketplace.domain.outbox.OutboxStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -41,8 +43,14 @@ class OutboxEventEntity extends AssignedIdEntity<UUID> {
     @Column(name = "retry_window_start")
     private Instant retryWindowStart;
 
+    @Column(name = "last_error")
+    private String lastError;
+
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Column(name = "sent_at")
+    private Instant sentAt;
 
     protected OutboxEventEntity() {}
 
@@ -63,5 +71,20 @@ class OutboxEventEntity extends AssignedIdEntity<UUID> {
     @Override
     public UUID getId() {
         return id;
+    }
+
+    OutboxEvent toDomain() {
+        return new OutboxEvent(
+                id,
+                tenantId,
+                aggregateId,
+                eventType,
+                Destination.valueOf(destination),
+                payload,
+                OutboxStatus.valueOf(status),
+                attempts,
+                nextAttemptAt,
+                retryWindowStart,
+                createdAt);
     }
 }
