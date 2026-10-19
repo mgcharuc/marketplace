@@ -18,18 +18,27 @@ public class DatabaseCleaner {
     private final FixedTimeSource time;
     private final SequentialIdGenerator ids;
     private final FailingOutbox outbox;
+    private final FakeErp erp;
+    private final FakePushProvider push;
+    private final FixedJitter jitter;
 
     DatabaseCleaner(
             JdbcTemplate jdbc,
             LoadSeeds loadSeeds,
             FixedTimeSource time,
             SequentialIdGenerator ids,
-            FailingOutbox outbox) {
+            FailingOutbox outbox,
+            FakeErp erp,
+            FakePushProvider push,
+            FixedJitter jitter) {
         this.jdbc = jdbc;
         this.loadSeeds = loadSeeds;
         this.time = time;
         this.ids = ids;
         this.outbox = outbox;
+        this.erp = erp;
+        this.push = push;
+        this.jitter = jitter;
     }
 
     public void clean() {
@@ -38,6 +47,9 @@ public class DatabaseCleaner {
         time.reset();
         ids.reset();
         outbox.reset();
+        erp.reset();
+        push.reset();
+        jitter.reset();
         loadSeeds.handle();
     }
 }

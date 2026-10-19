@@ -1,3 +1,7 @@
+marketplace:
+  relay:
+    scheduler:
+      enabled: false
 spring:
   datasource:
     hikari:

@@ -30,12 +30,33 @@ public class TestDoublesConfiguration {
     }
 
     @Bean
+    @Primary
+    FakeErp fakeErp() {
+        return new FakeErp();
+    }
+
+    @Bean
+    @Primary
+    FakePushProvider fakePushProvider() {
+        return new FakePushProvider();
+    }
+
+    @Bean
+    @Primary
+    FixedJitter fixedJitter() {
+        return new FixedJitter();
+    }
+
+    @Bean
     DatabaseCleaner databaseCleaner(
             JdbcTemplate jdbc,
             LoadSeeds loadSeeds,
             FixedTimeSource time,
             SequentialIdGenerator ids,
-            FailingOutbox outbox) {
-        return new DatabaseCleaner(jdbc, loadSeeds, time, ids, outbox);
+            FailingOutbox outbox,
+            FakeErp erp,
+            FakePushProvider push,
+            FixedJitter jitter) {
+        return new DatabaseCleaner(jdbc, loadSeeds, time, ids, outbox, erp, push, jitter);
     }
 }

@@ -138,6 +138,21 @@ Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit
 - **El número de orden sale de una secuencia de PostgreSQL** que no bloquea. Como se toma después de las validaciones, un rechazo no gasta número. Solo un fallo posterior, antes del commit, deja un hueco, y eso está permitido porque no es una numeración fiscal.
 - **Los avisos al ERP y al tendero se guardan en la misma transacción** que la orden, en una tabla de eventos pendientes. Así no quedan avisos de órdenes que no existen ni órdenes sin aviso, y ningún sistema externo se llama antes del commit.
 
+## Entrega al ERP y al tendero
+
+Un proceso de la aplicación (`OutboxRelay`) revisa cada segundo los eventos pendientes y entrega cada uno en su propia transacción, con su fila bloqueada. Si se levantan varias instancias, cada una salta los eventos que otra tiene tomados.
+
+- **La entrega es al menos una vez.** El ERP recibe el `eventId` como clave de idempotencia y descarta un segundo envío. La notificación lleva el `orderId` como clave de agrupación, así que el dispositivo junta las repetidas.
+- **Si el destino falla, el evento se reintenta** con una espera que empieza en un segundo, se duplica con cada fallo hasta 15 minutos y suma hasta un 20 % al azar, para que muchos eventos no reintenten a la vez. Cualquier error del entregador cuenta como un intento.
+- **Cada destino tiene su ventana.** El ERP se reintenta durante 72 horas y después el evento queda fallido. La notificación solo sirve si llega pronto, así que pasada una hora se descarta, aunque el proveedor esté disponible.
+- **El ERP va antes que la notificación** cuando los dos están pendientes, porque los ids de evento son crecientes y el relay desempata por id.
+
+## Modelo de consistencia
+
+- **La confirmación es de consistencia fuerte.** La orden, el consumo de cupo, la clave de idempotencia y los avisos pendientes se escriben en una sola transacción de PostgreSQL. Si la base no está disponible no se confirman pedidos, porque se prefiere la consistencia a la disponibilidad.
+- **Los avisos al ERP y al tendero son de consistencia eventual.** Llegan después del 201, entregados al menos una vez, y cada destino descarta o agrupa los repetidos. No existe una entrega exactamente una vez de punta a punta hacia sistemas externos.
+- **Lo que se paga por esto.** La cuenta de crédito del par queda bloqueada mientras se confirma. El 201 garantiza que la orden quedó registrada, no que el ERP la aceptó. Un evento del ERP que no se entrega en 72 horas necesita que alguien lo revise, y una notificación que no llega en una hora se pierde.
+
 ## Política de redondeo
 
 Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio, en el motor de precios o en el código que lee y escribe JSON, si el dominio o el motor convierten un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio y el motor no dependan de ningún framework.
@@ -154,5 +169,5 @@ Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: 
 
 ## Pendientes y por qué
 
-- **Entrega de los avisos.** Los avisos al ERP y al tendero se guardan como pendientes, pero todavía no hay un proceso que los entregue.
+- **Reencolar eventos fallidos.** Un evento del ERP que agotó su ventana queda fallido, y todavía no hay una operación para volver a encolarlo.
 - **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.
