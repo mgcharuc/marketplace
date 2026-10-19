@@ -8,7 +8,7 @@
 |---|---|---|
 | La cotización guarda su desglose y se confirma por `quoteId` | Recalcular al confirmar | Recalcular puede dar otro total |
 | Combo, escala, obsequio, impuestos y crédito, en ese orden | Escala primero, o lo más favorable | Una unidad recibiría dos descuentos, y lo más favorable no se explica fácil |
-| Escala marginal por tramos | Aplicar el tramo a todas las unidades | Evita saltos de precio al cruzar un tramo |
+| Escala marginal, configurable por regla | Siempre el tramo a todas las unidades | Evita saltos de precio al cruzar un tramo |
 | `BigDecimal` y redondeo por línea según la moneda | Redondear el total | El total suma las líneas, como la factura |
 | Orden, cupo, clave de idempotencia y eventos en una transacción | Publicar directo o 2PC | Publicar directo pierde eventos y ni el ERP ni el push soportan 2PC |
 | Outbox con relay, al menos una vez y deduplicación por `eventId` | Broker de mensajería | Más infraestructura con la misma garantía |
@@ -28,11 +28,11 @@
 ## Qué revisaría en un code review
 
 - `double`, `float` o `new BigDecimal(double)` en montos, y montos comparados con `equals`.
-- Redondeos fuera del descuento de escala por línea, el total del combo y el impuesto de cada línea.
+- Redondeos fuera de la escala por línea, el total del combo y el impuesto por línea u obsequio.
 - Llamadas externas antes del commit, o al ERP sin timeout dentro del relay.
 - Consultas de negocio sin `tenant_id`, y bloqueos en otro orden que clave, cotización y cupo.
 - Valores esperados de las pruebas copiados de la salida del propio código.
 
 ## Riesgo y mitigación
 
-El cupo local es una copia del cupo del ERP y puede divergir por abonos o ajustes manuales. Cada consumo queda como un movimiento ligado a la orden, así que un proceso diario puede comparar ambos saldos y registrar la diferencia como ajuste. Mientras tanto, el ERP sigue siendo la autoridad.
+El cupo local es una copia del cupo del ERP y puede divergir por abonos o ajustes. Cada consumo queda como movimiento de la orden, así que un proceso diario puede comparar ambos saldos, sin contar las órdenes que el ERP aún no recibió, y ajustar el local con un movimiento nuevo. Hasta entonces, el cupo local puede aprobar una orden que el ERP rechace.
