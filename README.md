@@ -83,9 +83,16 @@ curl -i http://localhost:8080/v1/orders/{orderId} \
   -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO'
 ```
 
+El historial del tendero va de la orden más reciente a la más antigua, con `page` desde 0 y `size` de 1 a 100 (20 por defecto). Se lee de la misma base donde se confirma, así que una orden aparece apenas se responde su 201.
+
+```bash
+curl -i 'http://localhost:8080/v1/orders?page=0&size=20' \
+  -H 'X-Tenant-Id: CO-MARCA-A' -H 'X-Customer-Id: CLI-CONTADO'
+```
+
 Los errores usan `application/problem+json` con un `code` estable y el `correlationId`:
 
-- 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad o la `Idempotency-Key`, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte) o falta un campo obligatorio.
+- 400 cuando la forma de la petición no es válida: faltan las cabeceras de identidad o la `Idempotency-Key`, el JSON está mal formado, hay campos desconocidos, un tipo es incorrecto (`"quantity": "3"` no se convierte), falta un campo obligatorio o la paginación está fuera de rango.
 - 404 si el tenant, el tendero, la cotización, la orden o la ruta no existen.
 - 405 si la ruta no admite el método y 415 si el cuerpo no es `application/json`.
 - 409 si la cotización venció (con `expiresAt`) o ya se confirmó (con su `orderId`).

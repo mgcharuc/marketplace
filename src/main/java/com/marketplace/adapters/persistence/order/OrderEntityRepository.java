@@ -1,6 +1,8 @@
 package com.marketplace.adapters.persistence.order;
 
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,4 +20,9 @@ interface OrderEntityRepository extends JpaRepository<OrderEntity, String> {
 
     @Query(nativeQuery = true, value = "SELECT nextval('order_number_seq')")
     long nextSequence();
+
+    Page<OrderSummaryRow> findByTenantIdAndCustomerId(
+            String tenantId, String customerId, Pageable pageable);
+
+    long countByTenantIdAndCustomerId(String tenantId, String customerId);
 }

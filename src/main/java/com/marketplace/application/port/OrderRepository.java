@@ -1,7 +1,9 @@
 package com.marketplace.application.port;
 
+import com.marketplace.domain.money.CurrencyConfig;
 import com.marketplace.domain.order.Order;
 import com.marketplace.domain.order.OrderKey;
+import com.marketplace.domain.order.OrderSummary;
 import java.util.Optional;
 
 public interface OrderRepository {
@@ -15,4 +17,12 @@ public interface OrderRepository {
     void save(Order order);
 
     Optional<String> findBody(OrderKey key);
+
+    /**
+     * Órdenes del tendero, de la más reciente a la más antigua. Las confirmadas en el mismo
+     * instante quedan de la secuencia más alta a la más baja. Los totales salen en la moneda
+     * indicada.
+     */
+    PageResult<OrderSummary> history(
+            String tenantId, String customerId, PageQuery page, CurrencyConfig currency);
 }

@@ -3,6 +3,7 @@ package com.marketplace.bootstrap;
 import com.marketplace.application.CustomerAccess;
 import com.marketplace.application.order.ConfirmOrder;
 import com.marketplace.application.order.GetOrder;
+import com.marketplace.application.order.GetOrderHistory;
 import com.marketplace.application.port.CreditRepository;
 import com.marketplace.application.port.EventPayloadRenderer;
 import com.marketplace.application.port.IdGenerator;
@@ -49,5 +50,10 @@ class OrderConfiguration {
     @Bean
     GetOrder getOrder(CustomerAccess access, OrderRepository orders) {
         return new GetOrder(access, orders);
+    }
+
+    @Bean
+    GetOrderHistory getOrderHistory(CustomerAccess access, OrderRepository orders) {
+        return new GetOrderHistory(access, orders);
     }
 }
