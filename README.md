@@ -108,6 +108,8 @@ Ningún valor de moneda, escala, redondeo ni tasa está escrito en el código. L
 - **Tenant** (país y marca): prefijo del número de orden y tiempos de vigencia de la cotización y de la clave de idempotencia. Toma la configuración fiscal y monetaria de su país.
 - **Versión comercial del tenant**: productos con su precio de lista y su clase tributaria, reglas de combo, escala y obsequio, y el orden de las etapas. Las versiones se numeran de forma consecutiva y una versión publicada no se modifica.
 
+Cada regla puede tener una vigencia con `validFrom` y `validTo`, en ISO-8601 con cualquier offset. `validFrom` se incluye y `validTo` no, y si falta uno de los dos ese lado queda abierto. La vigencia se revisa solo al cotizar, así que la orden mantiene la promoción cotizada aunque venza antes de confirmar.
+
 Antes de publicar una versión se valida completa: un pipeline con los impuestos después de las etapas comerciales, el crédito al final y sin etapas repetidas ni faltantes, tramos de escala crecientes, precio de combo por debajo del valor de lista, referencias a SKU, familias y clases tributarias que existan, precios de lista mayores que cero y en la escala de la moneda, reglas que compiten con la misma prioridad y vigencias coherentes. El error lista todas las violaciones juntas.
 
 Las semillas están en `src/main/resources/seed/`. `tenants.json` define Colombia (COP, escala 0) y Ecuador (USD, escala 2), y tres tenants: `CO-MARCA-A`, `CO-MARCA-B` y `EC-MARCA-A`. Cada tenant tiene su versión inicial en `<tenant>.v1.json`. Un campo desconocido, uno obligatorio que falta o un país inexistente hacen fallar la carga con la ruta del campo.
@@ -143,7 +145,7 @@ Confirmar es una sola transacción en PostgreSQL. Si algo falla antes del commit
 Un proceso de la aplicación (`OutboxRelay`) revisa cada segundo los eventos pendientes y entrega cada uno en su propia transacción, con su fila bloqueada. Si se levantan varias instancias, cada una salta los eventos que otra tiene tomados.
 
 - **La entrega es al menos una vez.** Si el proceso cae después de entregar y antes de marcar el evento como enviado, el evento vuelve a salir con el mismo `eventId`. El ERP lo usa como clave de idempotencia y descarta el segundo envío.
-- **Una notificación entregada no se vuelve a enviar.** Cada entrega se registra en una transacción propia, que se confirma aunque la del evento se pierda, y el relay la consulta antes de enviar la notificación. Además lleva el `orderId` como clave de agrupación, así que el dispositivo junta las repetidas.
+- **Una notificación entregada no se vuelve a enviar.** Cada entrega se guarda en su propia transacción, que queda confirmada aunque la del evento se revierta, y el relay la revisa antes de enviar. La notificación lleva además el `orderId` como clave de agrupación, así que el dispositivo junta las repetidas.
 - **Si el destino falla, el evento se reintenta** con una espera que empieza en un segundo, se duplica con cada fallo hasta 15 minutos y suma hasta un 20 % al azar, para que muchos eventos no reintenten a la vez. Cualquier error del entregador cuenta como un intento.
 - **Cada destino tiene su ventana.** El ERP se reintenta durante 72 horas y después el evento queda fallido. La notificación solo sirve si llega pronto, así que pasada una hora se descarta, aunque el proveedor esté disponible.
 - **El ERP va antes que la notificación** cuando los dos están pendientes, porque los ids de evento son crecientes y el relay desempata por id.
@@ -162,7 +164,7 @@ curl -i -X POST http://localhost:8080/v1/admin/outbox/{eventId}/retry
 
 ## Política de redondeo
 
-Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio, en el motor de precios o en el código que lee y escribe JSON, si el dominio o el motor convierten un monto a `double` o si un `BigDecimal` se crea desde un `double`. La misma prueba exige que el dominio y el motor no dependan de ningún framework.
+Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueba de arquitectura (`ArchitectureTest`) hace fallar el build si aparece un `double` o un `float`, solo o dentro de un arreglo o una lista, en el dominio, en el motor de precios o en el código que lee y escribe JSON, si el dominio o el motor convierten un monto a `double` o si un `BigDecimal` se crea desde un `double`.
 
 - Cada moneda define su escala y su modo de redondeo, `HALF_UP` o `HALF_EVEN`. La escala es la de la práctica comercial, que puede no coincidir con la oficial.
 - `Money` completa con ceros un valor con menos decimales que la moneda (`2.3` pasa a `2.30` en USD) y rechaza uno con más. Nunca redondea por su cuenta.
@@ -174,6 +176,17 @@ Los montos son `BigDecimal` envueltos en `Money`, que lleva su moneda. Una prueb
 
 Los casos de `src/test/resources/golden/` comprueban el motor de punta a punta: cada carpeta tiene el carrito y el desglose esperado, calculado a mano. `GoldenTest` los ejecuta todos y además revisa que los totales cuadren con la suma de líneas, descuentos, tramos y obsequios, y que el crédito compare el total con el cupo. La derivación de cada monto está en `src/test/resources/golden/README.md`.
 
+## Organización del código
+
+Es un monolito con puertos y adaptadores. Las dependencias van siempre hacia adentro, y `ArchitectureTest` hace fallar el build si alguna se invierte.
+
+- `domain` tiene los conceptos del negocio (dinero, productos, configuración, cotización, orden, cupo y eventos) y `pricing` el motor de precios. Son Java puro. El dominio no depende de nadie y el motor solo del dominio.
+- `application` tiene los casos de uso y los puertos que usan. No conoce Spring, JPA ni los adaptadores.
+- `adapters` tiene la API web y las implementaciones de los puertos (JSON, PostgreSQL, entrega al ERP y al tendero, reloj, ids y jitter). Un adaptador no usa a otro.
+- `bootstrap` registra como beans los casos de uso, el relay, su planificador y la carga de semillas. Ninguna otra capa depende de él.
+
 ## Pendientes y por qué
 
-- **Vigencia de las reglas.** La versión acepta `validFrom` y `validTo` y valida que el inicio sea anterior al fin, pero el motor aplica todas las reglas sin mirar la fecha. Se priorizaron las palancas que pide el enunciado y ninguna regla de las semillas tiene vigencia.
+- **Dos casos golden del motor.** La escala antes que el combo y dos combos que compiten por un SKU ya tienen pruebas unitarias en `PricingEngineTest`, pero no un caso golden. Se priorizaron los golden que pide el enunciado.
+- **Umbrales estrictos de cobertura.** El build exige 80 % de líneas en el dominio y en el motor. Las pruebas unitarias cubren hoy el 89 % de las líneas del dominio y el 98 % de las del motor, y más del 93 % de las ramas en los dos. El umbral no se subió al 90 % de líneas porque habría que escribir pruebas solo para alcanzar el número.
+

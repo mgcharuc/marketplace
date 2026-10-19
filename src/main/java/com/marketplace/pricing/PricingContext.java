@@ -87,6 +87,7 @@ final class PricingContext {
         return input.config().rules().stream()
                 .filter(type::isInstance)
                 .map(type::cast)
+                .filter(rule -> rule.activeAt(input.now()))
                 .sorted(Comparator.comparingInt(Rule::priority).thenComparing(Rule::id))
                 .toList();
     }

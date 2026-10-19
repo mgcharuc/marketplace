@@ -13,6 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.marketplace.application.port.ConfigCodec;
 import com.marketplace.application.port.ConfigRepository;
 import com.marketplace.application.port.TenantRepository;
+import com.marketplace.domain.config.ConfigVersion;
+import com.marketplace.domain.config.Rule;
+import com.marketplace.domain.config.ScaleRule;
 import com.marketplace.domain.config.TenantConfigHistory;
 import com.marketplace.support.FailingOutbox;
 import com.marketplace.support.FixedTimeSource;
@@ -22,6 +25,7 @@ import com.marketplace.support.Resources;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -313,12 +317,7 @@ class OrderApiIT {
                         quoteRequest("CLI-CREDITO-ALTO", "DIST-NORTE", "CREDIT", "GASEOSA-350", 25)
                                 .andExpect(jsonPath("$.configVersion").value(1))
                                 .andExpect(jsonPath("$.totals.total").value("56882")));
-        var second = codec.decode(Resources.read("seed/co-marca-a.v2.json"));
-        var history =
-                new TenantConfigHistory(
-                        tenants.find("CO-MARCA-A").orElseThrow(),
-                        configs.current("CO-MARCA-A").number());
-        configs.publish(history.publish(second), time.now());
+        publish(codec.decode(Resources.read("seed/co-marca-a.v2.json")));
 
         confirm("CO-MARCA-A", "CLI-CREDITO-ALTO", "key-1", quoteId)
                 .andExpect(status().isCreated())
@@ -329,6 +328,28 @@ class OrderApiIT {
         quoteRequest("CLI-CREDITO-ALTO", "DIST-NORTE", "CREDIT", "GASEOSA-350", 25)
                 .andExpect(jsonPath("$.configVersion").value(2))
                 .andExpect(jsonPath("$.totals.total").value("74375"));
+    }
+
+    @Test
+    @DisplayName("Una promoción que vence entre cotizar y confirmar se respeta en la orden")
+    void orderKeepsPromotionThatExpiredAfterQuoting() throws Exception {
+        publishScaleValidUntil(time.now().plus(Duration.ofMinutes(5)));
+        String quoteId =
+                quoteId(
+                        quoteRequest("CLI-CONTADO", "DIST-NORTE", "CASH", "GASEOSA-350", 25)
+                                .andExpect(jsonPath("$.configVersion").value(2))
+                                .andExpect(jsonPath("$.totals.total").value("56882")));
+        time.advance(Duration.ofMinutes(10));
+
+        confirm("CO-MARCA-A", "CLI-CONTADO", "key-1", quoteId)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.discounts[0].ruleId").value("ESC-GAS350"))
+                .andExpect(jsonPath("$.totals.total").value("56882"));
+
+        quoteRequest("CLI-CONTADO", "DIST-NORTE", "CASH", "GASEOSA-350", 25)
+                .andExpect(jsonPath("$.configVersion").value(2))
+                .andExpect(jsonPath("$.discounts").isEmpty())
+                .andExpect(jsonPath("$.totals.total").value("59500"));
     }
 
     @Test
@@ -457,5 +478,41 @@ class OrderApiIT {
                 BigDecimal.class,
                 customerId,
                 distributorId);
+    }
+
+    private void publishScaleValidUntil(Instant validTo) {
+        ConfigVersion current = configs.current("CO-MARCA-A");
+        List<Rule> rules =
+                current.rules().stream()
+                        .map(
+                                rule ->
+                                        rule instanceof ScaleRule scale
+                                                        && scale.id().equals("ESC-GAS350")
+                                                ? new ScaleRule(
+                                                        scale.id(),
+                                                        scale.name(),
+                                                        scale.priority(),
+                                                        null,
+                                                        validTo,
+                                                        scale.scope(),
+                                                        scale.mode(),
+                                                        scale.tiers())
+                                                : rule)
+                        .toList();
+        publish(
+                new ConfigVersion(
+                        current.tenantId(),
+                        current.number() + 1,
+                        current.pipeline(),
+                        current.products(),
+                        rules));
+    }
+
+    private void publish(ConfigVersion version) {
+        var history =
+                new TenantConfigHistory(
+                        tenants.find("CO-MARCA-A").orElseThrow(),
+                        configs.current("CO-MARCA-A").number());
+        configs.publish(history.publish(version), time.now());
     }
 }

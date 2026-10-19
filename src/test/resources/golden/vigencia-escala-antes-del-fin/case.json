@@ -1,0 +1,43 @@
+{
+  "description": "La escala aplica cinco minutos antes de su fin de vigencia",
+  "seed": "co-marca-a.v1",
+  "overrides": {
+    "rules": {
+      "ESC-GAS350": {
+        "id": "ESC-GAS350",
+        "name": "Escala Gaseosa 350",
+        "type": "ESCALA",
+        "priority": 10,
+        "validTo": "2026-10-17T00:00:00-05:00",
+        "scope": {
+          "kind": "SKU",
+          "ref": "GASEOSA-350"
+        },
+        "mode": "MARGINAL",
+        "tiers": [
+          {
+            "fromQty": 10,
+            "percent": "5"
+          },
+          {
+            "fromQty": 20,
+            "percent": "10"
+          }
+        ]
+      }
+    }
+  },
+  "now": "2026-10-16T23:55:00-05:00",
+  "customerId": "CLI-CONTADO",
+  "credit": null,
+  "request": {
+    "distributorId": "DIST-NORTE",
+    "paymentMethod": "CASH",
+    "items": [
+      {
+        "sku": "GASEOSA-350",
+        "quantity": 25
+      }
+    ]
+  }
+}

@@ -22,6 +22,12 @@ public sealed interface Rule permits ComboRule, ScaleRule, GiftRule {
 
     Stage stage();
 
+    /** Indica si la regla vale en {@code now}. Incluye el inicio y excluye el fin. */
+    default boolean activeAt(Instant now) {
+        return (validFrom() == null || !now.isBefore(validFrom()))
+                && (validTo() == null || now.isBefore(validTo()));
+    }
+
     static void requireHeader(String id, String name) {
         Identifier.require(id, "ruleId");
         Objects.requireNonNull(name, "name");

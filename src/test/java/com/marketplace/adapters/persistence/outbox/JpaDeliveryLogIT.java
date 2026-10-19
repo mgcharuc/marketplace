@@ -58,7 +58,7 @@ class JpaDeliveryLogIT {
     }
 
     @Test
-    @DisplayName("Una entrega registrada se encuentra solo para su destino")
+    @DisplayName("La entrega registrada para un destino no cuenta para el otro")
     void findsDeliveryOnlyForItsDestination() {
         deliveries.record(EVENT, Destination.PUSH, FixedTimeSource.START);
 

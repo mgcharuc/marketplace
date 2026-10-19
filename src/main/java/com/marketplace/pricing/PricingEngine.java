@@ -9,11 +9,12 @@ import java.util.Map;
  * Calcula el desglose de un carrito ejecutando las etapas en el orden que define la versión
  * comercial. Una etapa sin implementación registrada no cambia el resultado.
  *
- * <p>Una unidad recibe como máximo un descuento. El combo se aplica tantas veces como conjuntos
- * completos quedan y reparte su descuento entre las líneas en proporción al valor de lista que
- * consumió. La escala cuenta posiciones solo sobre las unidades que siguen elegibles, ordenadas de
- * la más cara a la más barata, así que los tramos altos caen en las unidades más baratas. Los
- * descuentos de escala y los impuestos se redondean una vez por línea.
+ * <p>Solo se aplican las reglas vigentes en el instante del cálculo. Una unidad recibe como máximo
+ * un descuento. El combo se aplica tantas veces como conjuntos completos quedan y reparte su
+ * descuento entre las líneas en proporción al valor de lista que consumió. La escala cuenta
+ * posiciones solo sobre las unidades que siguen elegibles, ordenadas de la más cara a la más
+ * barata, así que los tramos altos caen en las unidades más baratas. Los descuentos de escala y los
+ * impuestos se redondean una vez por línea.
  *
  * <p>El obsequio cuenta las unidades pagadas de su alcance, con o sin descuento. Las unidades
  * obsequiadas no activan otras palancas. Su impuesto se calcula sobre el precio de lista y solo

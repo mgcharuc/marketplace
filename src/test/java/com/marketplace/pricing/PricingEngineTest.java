@@ -14,7 +14,9 @@ import static com.marketplace.pricing.Carts.cart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.marketplace.domain.config.ComboRule;
 import com.marketplace.domain.config.ConfigVersion;
+import com.marketplace.domain.config.GiftRule;
 import com.marketplace.domain.config.Product;
 import com.marketplace.domain.config.Rule;
 import com.marketplace.domain.config.ScaleMode;
@@ -278,6 +280,58 @@ class PricingEngineTest {
         assertThat(plain(breakdown.lines().get(0).taxAmount())).isEqualTo("2630");
         assertThat(plain(breakdown.totals().taxTotal())).isEqualTo("3563");
         assertThat(plain(breakdown.totals().total())).isEqualTo("22313");
+    }
+
+    @Test
+    @DisplayName("Un combo y un obsequio no se aplican antes de su inicio y sí desde ese instante")
+    void rulesNotYetValidAreSkipped() {
+        var rules = new ArrayList<Rule>();
+        for (Rule rule : coMarcaARules()) {
+            rules.add(
+                    switch (rule) {
+                        case ComboRule combo when combo.id().equals("CMB-FIESTA") ->
+                                new ComboRule(
+                                        combo.id(),
+                                        combo.name(),
+                                        combo.priority(),
+                                        NOW.plusSeconds(1),
+                                        null,
+                                        combo.components(),
+                                        combo.comboPrice());
+                        case GiftRule gift ->
+                                new GiftRule(
+                                        gift.id(),
+                                        gift.name(),
+                                        gift.priority(),
+                                        NOW.plusSeconds(1),
+                                        null,
+                                        gift.condition(),
+                                        gift.reward(),
+                                        gift.repeatable());
+                        default -> rule;
+                    });
+        }
+        var version = new ConfigVersion("CO-MARCA-A", 1, PIPELINE, coMarcaAProducts(), rules);
+        var cart = cart("GASEOSA-1500", 2, "SNACK-PAPAS", 3, "GASEOSA-350", 12);
+
+        var before = price(version, CO_MARCA_A, cart);
+        var after =
+                engine.price(
+                        new PricingInput(
+                                version,
+                                CO_MARCA_A,
+                                cart,
+                                CreditAvailability.none(),
+                                NOW.plusSeconds(1)));
+
+        assertThat(before.discounts())
+                .extracting(AppliedDiscount::ruleId)
+                .containsExactly("ESC-GAS350");
+        assertThat(before.gifts()).isEmpty();
+        assertThat(after.discounts())
+                .extracting(AppliedDiscount::ruleId)
+                .containsExactly("CMB-FIESTA", "ESC-GAS350");
+        assertThat(after.gifts()).extracting(Gift::ruleId).containsExactly("OBS-JUGO");
     }
 
     @Test

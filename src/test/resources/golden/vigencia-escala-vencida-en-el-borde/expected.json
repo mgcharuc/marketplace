@@ -1,0 +1,48 @@
+{
+  "configVersion": 1,
+  "currency": {
+    "code": "COP",
+    "scale": 0,
+    "roundingMode": "HALF_UP"
+  },
+  "lines": [
+    {
+      "lineId": "L1",
+      "sku": "GASEOSA-350",
+      "name": "Gaseosa Cola 350 ml",
+      "quantity": 25,
+      "unitPrice": "2000",
+      "grossAmount": "50000",
+      "scaleDiscounts": [],
+      "taxBaseAllocations": [],
+      "taxableBase": "50000",
+      "taxRate": "0.19",
+      "taxAmount": "9500",
+      "netAmount": "59500"
+    }
+  ],
+  "discounts": [],
+  "gifts": [
+    {
+      "ruleId": "OBS-JUGO",
+      "sku": "JUGO-1L",
+      "name": "Jugo de naranja 1 L",
+      "quantity": 2,
+      "referenceUnitPrice": "4000",
+      "chargedAmount": "0",
+      "taxBase": "8000",
+      "taxRate": "0.05",
+      "taxAmount": "400",
+      "taxBorneBy": "SELLER"
+    }
+  ],
+  "totals": {
+    "grossSubtotal": "50000",
+    "discountTotal": "0",
+    "netSubtotal": "50000",
+    "taxableBase": "50000",
+    "taxTotal": "9500",
+    "total": "59500"
+  },
+  "credit": null
+}

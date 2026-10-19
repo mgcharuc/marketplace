@@ -139,3 +139,11 @@ Carrito: GASEOSA-350 × 12.
 - Obsequio: 1 GASEOSA-350, base 2000, IVA 19 % = 380 a cargo del vendedor.
 - Con la unidad obsequiada serían 13 y se activaría la escala, pero solo cuentan las 12 pagadas: sin descuento.
 - Base 24000, IVA 4560. Total 28560.
+
+## `vigencia-escala-antes-del-fin` y `vigencia-escala-vencida-en-el-borde`
+
+Cambios sobre la semilla: la escala de GASEOSA-350 vale hasta `2026-10-17T00:00:00-05:00`. Carrito de `escala-dos-tramos`.
+
+- A las 23:55 (-05:00), cinco minutos antes del fin, la escala aplica. Las unidades 10 a 19 van al 5 %, 10 × 2000 × 5 % = 1000, y las 20 a 25 al 10 %, 6 × 2000 × 10 % = 1200. Base 47800, IVA 9082. Total 56882.
+- A las 00:00 (-05:00) la escala ya no aplica, porque el fin no se incluye. Base 50000, IVA 9500. Total 59500.
+- El obsequio no tiene fechas de vigencia y en los dos casos da 2 jugos, base 8000 e IVA 400 a cargo del vendedor.

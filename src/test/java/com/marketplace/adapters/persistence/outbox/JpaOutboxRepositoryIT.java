@@ -165,7 +165,7 @@ class JpaOutboxRepositoryIT {
     }
 
     @Test
-    @DisplayName("Reencolar solo cambia eventos fallidos y dice por qué rechaza los demás")
+    @DisplayName("Reencolar no cambia un evento que no está fallido ni uno que no existe")
     void requeueOnlyChangesFailedEvents() {
         append(1, OutboxStatus.DISCARDED, NOW);
         append(2, OutboxStatus.PENDING, NOW.plusSeconds(10));
@@ -188,8 +188,7 @@ class JpaOutboxRepositoryIT {
     }
 
     @Test
-    @DisplayName(
-            "Reencolar espera al relay que tiene el evento y lo reencola si este lo dejó fallido")
+    @DisplayName("Reencolar espera a que el relay suelte el evento y lo reencola si quedó fallido")
     void requeueWaitsForTheRelayHoldingTheEvent() throws Exception {
         append(1, OutboxStatus.PENDING, NOW);
         var locked = new CountDownLatch(1);
